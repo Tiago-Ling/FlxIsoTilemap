@@ -1,8 +1,7 @@
 # FlxIsoTilemap
 
 ## About
-Isometric Tilemap Implementation for HaxeFlixel v0.1.0
-Initial version, lots of things will probably change, use at own risk.
+Isometric Tilemap Implementation for HaxeFlixel v0.1.0. Initial version, lots of things will probably change, use at own risk.
 
 ## Targets
 Currently Windows and Neko only.
