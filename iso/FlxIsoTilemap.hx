@@ -310,28 +310,28 @@ class FlxIsoTilemap extends FlxObject
 
 		var result:Array<Array<Int>> = new Array<Array<Int>>();
 		var rowresult:Array<Int> = new Array<Int>();
-    var rows:Array<String> = StringTools.trim(MapData).split("\n");
-    var row:String;
+		var rows:Array<String> = StringTools.trim(MapData).split("\n");
+		var row:String;
 
-    for (row in rows) {
+		for (row in rows) {
 
-        if (row == "") {
-            continue;
-        }
+		    if (row == "") {
+		        continue;
+		    }
 
-        var entries:Array<String> = row.split(",");
-        var entry:String;
-        rowresult = new Array<Int>();
-        for (entry in entries) {
+		    var entries:Array<String> = row.split(",");
+		    var entry:String;
+		    rowresult = new Array<Int>();
+		    for (entry in entries) {
 
-            if(entry != "") {
-                rowresult.push(Std.parseInt(entry));
-            }
-        }
-        result.push(rowresult);
-    }
+		        if(entry != "") {
+		            rowresult.push(Std.parseInt(entry));
+		        }
+		    }
+		    result.push(rowresult);
+		}
 
-    return result;
+		return result;
 	}
 
 	public function addLayerFromCsv(MapData:String, tiles:Array<Int>, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
