@@ -19,6 +19,7 @@ import openfl.display.Tilesheet;
 import openfl.events.Event;
 import openfl.geom.Matrix;
 import openfl.geom.Rectangle;
+using StringTools;
 
 /**
  * ...
@@ -297,6 +298,50 @@ class FlxIsoTilemap extends FlxObject
 		graphics.push(graph);
 		
 		return frameCollections.length - 1;
+	}
+
+	public function fromCsvStringToArray(MapData:String):Array<Array<Int>>
+	{
+		// path to map data file?
+		if (Assets.exists(MapData))
+		{
+			MapData = Assets.getText(MapData);
+		}
+
+		var result:Array<Array<Int>> = new Array<Array<Int>>();
+		var rowresult:Array<Int> = new Array<Int>();
+		var rows:Array<String> = StringTools.trim(MapData).split("\n");
+		var row:String;
+
+		for (row in rows) {
+
+		    if (row == "") {
+		        continue;
+		    }
+
+		    var entries:Array<String> = row.split(",");
+		    var entry:String;
+		    rowresult = new Array<Int>();
+		    for (entry in entries) {
+
+		        if(entry != "") {
+		            rowresult.push(Std.parseInt(entry));
+		        }
+		    }
+		    result.push(rowresult);
+		}
+
+		return result;
+	}
+
+	public function addLayerFromCsv(MapData:String, tiles:Array<Int>, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
+	{
+		return addLayerFromTileArray(fromCsvStringToArray(MapData), tiles, tilesetId, isDynamic, fillIndex);
+	}
+
+	public function addLayerFromCsvTileRange(MapData:String, startTile:Int, length:Int, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
+	{
+		return addLayerFromTileRange(fromCsvStringToArray(MapData), startTile, length, tilesetId, isDynamic, fillIndex);
 	}
 
 	//Separates a layer of tile types from a 2D array and returns it
