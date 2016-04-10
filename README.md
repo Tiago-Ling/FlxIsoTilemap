@@ -4,15 +4,16 @@
 Isometric Tilemap Implementation for HaxeFlixel v0.1.0. Initial version, lots of things will probably change, use at own risk.
 
 ## Targets
-Currently Windows and Neko only.
+Currently Windows, Mac and Neko only.
 
 ## Current features
 - Multiple layers
 - Multiple tilesets
+- Partial Tiled support (wip)
 
 ## Planned features
 - Dynamic layers (moving sprites, correct depth, coming soon)
-- Tiled support (coming soon)
+- ~~Tiled support (coming soon)~~
 - Z axis / gravity
 - Collision
 - OpenFL Tilemap API support

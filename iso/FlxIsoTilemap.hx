@@ -349,6 +349,11 @@ class FlxIsoTilemap extends FlxObject
 		return res;
 	}
 	
+	/**
+	 * Loads tileset, layer and tile data from a .tmx file and initializes the tilemap
+	 * Supports .tmx files with xml or csv encoding
+	 * @param	MapData	The string loaded from a .tmx file
+	 */
 	public function loadFromTiled(MapData:String)
 	{
 		var xmlData = Xml.parse(MapData);
