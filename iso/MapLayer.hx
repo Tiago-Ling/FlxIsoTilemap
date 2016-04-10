@@ -1,6 +1,11 @@
 package iso;
 import flixel.math.FlxPoint;
 import iso.Stack;
+import openfl.display.Tile;
+import openfl.display.TilemapLayer;
+import openfl.display.Tileset;
+import lime.graphics.opengl.GLBuffer;
+import lime.utils.Float32Array;
 
 /**
  * ...
@@ -8,30 +13,44 @@ import iso.Stack;
  */
 class MapLayer
 {
-	public var stacks:Array<Array<iso.Stack>>;
-	public var viewportTiles:Array<iso.Stack>;
-	public var tilesetId:Int;
+	public var stacks:Array<Array<Stack>>;
+	public var viewportTiles:Array<Stack>;
+	
+	public var tileset:Tileset;
 	
 	public var isDynamic:Bool;
 	public var dynamicObjects:Array<iso.IsoTile>;
 	
 	public var map:FlxIsoTilemap;
 	
+	public var length(get, null):Int;
+	
+	//TEMP
+	private var __buffer:GLBuffer;
+	private var __bufferData:Float32Array;
+	private var __dirty:Bool;
+	
 	//Experimental: Tile shadow tests
 	var minHeight:Float = 0;
 	var maxHeight:Float = 160;
 	
-	public function new(map:FlxIsoTilemap, stacks:Array<Array<iso.Stack>>, viewportTiles:Array<iso.Stack>, tilesetId:Int, isDynamic:Bool = false) 
+	public function new(tileset:Tileset, stacks:Array<Array<iso.Stack>>, viewportTiles:Array<Stack>, isDynamic:Bool = false) 
 	{
-		this.map = map;
 		this.stacks = stacks;
 		this.viewportTiles = viewportTiles;
-		this.tilesetId = tilesetId;
+		
+		this.tileset = tileset;
+		
 		this.isDynamic = isDynamic;
 		
 		//Experimental
 		if (isDynamic)
 			dynamicObjects = new Array<iso.IsoTile>();
+	}
+	
+	public function clearTiles()
+	{
+		viewportTiles.splice(0, viewportTiles.length);
 	}
 	
 	public function addObject(obj:iso.IsoTile, isMoveable:Bool)
@@ -59,9 +78,9 @@ class MapLayer
 			//Checking if the tile moved to another stack
 			
 			//If it now belongs to a new stack, pop it out of the old one
-			var screen_pos:FlxPoint = map.getWorldToScreen(tile.world_x, tile.world_y);
+			var screen_pos:FlxPoint = map.getWorldToScreen(tile.x, tile.y);
 			
-			//TODO: Find a general offset based on tile size
+			//TODO: Find a general offset based on tile size 
 			var newIso:FlxPoint = map.getScreenToIso(screen_pos.x - 16, screen_pos.y + 16);
 			
 			if (tile.iso_x != newIso.x || tile.iso_y != newIso.y) {
@@ -80,19 +99,18 @@ class MapLayer
 			}
 			
 			//Experimental: Apply gravity
-			if (tile.world_z > stacks[tile.iso_y][tile.iso_x].z_height) {
+			if (tile.z > stacks[tile.iso_y][tile.iso_x].z) {
 				var gravity:Float = 200 * delta;
-				tile.world_z -= gravity;
+				tile.z -= gravity;
 				
-				if (tile.world_z <= stacks[tile.iso_y][tile.iso_x].z_height) {
-					tile.world_z = stacks[tile.iso_y][tile.iso_x].z_height;
-					//trace('Touched ground');
+				if (tile.z <= stacks[tile.iso_y][tile.iso_x].z) {
+					tile.z = stacks[tile.iso_y][tile.iso_x].z;
 				}
 			}
 			
 			//Experimental: Update tile shadow
 			if (tile.hasShadow) {
-				tile.shadowScale = (1 / (maxHeight - minHeight)) * (maxHeight - tile.world_z);
+				tile.shadowScale = (1 / (maxHeight - minHeight)) * (maxHeight - tile.z);
 			}
 		}
 	}
@@ -100,5 +118,12 @@ class MapLayer
 	function lerp(alpha:Float, a:Float, b:Float):Float
 	{
 		return (b - a) * alpha + a;
+	}
+	
+	public function get_length():Int
+	{
+		if (viewportTiles == null) return 0;
+		
+		return viewportTiles.length;
 	}
 }

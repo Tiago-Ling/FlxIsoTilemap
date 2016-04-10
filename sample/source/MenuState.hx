@@ -10,8 +10,11 @@ import flixel.math.FlxPoint;
 import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.math.FlxMath;
+import flixel.util.FlxTimer;
 import iso.FlxIsoTilemap;
 import lime.system.BackgroundWorker;
+import openfl.Assets;
+import openfl.display.Tileset;
 
 class MenuState extends FlxState
 {
@@ -19,8 +22,8 @@ class MenuState extends FlxState
 	static inline var VIEWPORT_HEIGHT:Float = 480;
 	
 	//Max size tested = 1200x1200 (~850MB mem, no optimization)
-	static inline var MAP_WIDTH:Float = 600;
-	static inline var MAP_HEIGHT:Float = 600;
+	static inline var MAP_WIDTH:Float = 150;
+	static inline var MAP_HEIGHT:Float = 150;
 	
 	static inline var TILE_WIDTH:Float = 64;
 	static inline var TILE_HEIGHT:Float = 96;
@@ -39,7 +42,6 @@ class MenuState extends FlxState
 		map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(MAP_WIDTH, MAP_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
 		map.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
 		map.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
-		add(map);
 		
 		mapGen = new MapGenerator(map.map_w, map.map_h, 3, 7, 15, false);
 		mapGen.setIndices(41, 53, 45, 49, 25, 37, 29, 33, 1, 1, 1, 1, 0); 
@@ -47,13 +49,19 @@ class MenuState extends FlxState
 		//Async map generation (old map generator can be quite slow for maps > 300 x 300)
 		var worker = new BackgroundWorker();
 		
+		//openfl.display.Tilemap tilesets
+		var tilesetA:Tileset = map.getTileset(Assets.getBitmapData('assets/images/dynamic_tileset.png'), TILE_WIDTH, TILE_HEIGHT);
+		var tilesetB:Tileset = map.getTileset(Assets.getBitmapData('assets/images/new_pixel_64_96.png'), TILE_WIDTH, TILE_HEIGHT);
+		
 		worker.doWork.add (function loadMapData(_) {
 			mapGen.generate();
 			var mapData:Array<Array<Int>> = mapGen.extractData();
 			
-			map.addLayerFromTileArray(mapData, [0, 1], 0, false, 58);
-			map.addEmptyLayer(1, -1);
-			map.addLayerFromTileRange(mapData, 2, 62, 1, true, -1);
+			map.addLayerFromTileArray(mapData, [0, 1], tilesetA, false, 58);
+			
+			map.addEmptyLayer(tilesetB, -1);
+			
+			map.addLayerFromTileRange(mapData, 2, 62, tilesetB, true, -1);
 			
 			worker.sendComplete();
 		});
@@ -65,6 +73,9 @@ class MenuState extends FlxState
 			loadTxt.alignment = FlxTextAlign.LEFT;
 			loadTxt.setPosition(10, FlxG.height - 30);
 			loadTxt.text = 'Use arrow keys to scroll the map';
+			
+			FlxG.addChildBelowMouse(map);
+			//add(map);
 		});
 		
 		loadTxt = new FlxText(0, FlxG.stage.stageHeight / 2 - 15, FlxG.width, 'Loading $MAP_WIDTH x $MAP_HEIGHT ...', 20);

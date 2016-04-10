@@ -1,5 +1,6 @@
 package iso;
 import flixel.math.FlxPoint;
+import openfl.display.Tile;
 
 /**
  * ...
@@ -7,12 +8,11 @@ import flixel.math.FlxPoint;
  */
 class IsoTile
 {
-	public var type:Int;
-	//DEPRECATED
-	//public var drawIndex:Int;
-	public var world_x:Float;
-	public var world_y:Float;
-	public var world_z:Float;
+	public var id:Int;
+	public var x:Float;
+	public var y:Float;
+	public var z:Float;
+	
 	public var iso_x:Int;
 	public var iso_y:Int;
 	
@@ -33,12 +33,12 @@ class IsoTile
 	public var shadowId:Int;
 	public var shadowScale:Float;
 	
-	public function new(type:Int, world_x:Float, world_y:Float, iso_x:Int, iso_y:Int)
+	public function new(id:Int, x:Float, y:Float, iso_x:Int, iso_y:Int)
 	{
-		this.type = type;
-		this.world_x = world_x;
-		this.world_y = world_y;
-		this.world_z = 0;
+		this.id = id;
+		this.x = x;
+		this.y = y;
+		this.z = 0;
 		this.iso_x = iso_x;
 		this.iso_y = iso_y;
 		
@@ -82,7 +82,7 @@ class IsoTile
 		if (elapsed >= frameChangeTime) {
 			elapsed = 0;
 			
-			type = currentAnimation[currentFrame];
+			id = currentAnimation[currentFrame];
 			
 			if (currentFrame < currentAnimation.length - 2) {
 				currentFrame++;

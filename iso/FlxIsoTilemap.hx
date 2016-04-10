@@ -1,4 +1,8 @@
 package iso;
+
+import openfl._internal.renderer.RenderSession;
+import openfl._internal.renderer.opengl.GLRenderer;
+import flash.display.BitmapData;
 import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -14,17 +18,23 @@ import iso.IsoTile;
 import iso.MapLayer;
 import iso.Stack;
 import openfl.Assets;
+import openfl.display.DisplayObject;
+import openfl.display.Graphics;
 import openfl.display.Sprite;
+import openfl.display.Tilemap;
+import openfl.display.Tileset;
 import openfl.display.Tilesheet;
 import openfl.events.Event;
 import openfl.geom.Matrix;
 import openfl.geom.Rectangle;
+import openfl.Lib;
 
 /**
  * ...
  * @author Tiago Ling Alexandre
  */
-class FlxIsoTilemap extends FlxObject
+//class FlxIsoTilemap extends FlxObject
+class FlxIsoTilemap extends DisplayObject
 {
 	public var map_w:Int;
 	public var map_h:Int;
@@ -35,6 +45,7 @@ class FlxIsoTilemap extends FlxObject
 	public var layers:Array<iso.MapLayer>;
 	public var viewport:Sprite;
 	
+	//Tileset
 	var frameCollections:Array<FlxFramesCollection>;
 	var graphics:Array<FlxGraphic>;
 	
@@ -65,6 +76,8 @@ class FlxIsoTilemap extends FlxObject
 	var botLeft:FlxPoint;
 	var botRight:FlxPoint;
 	
+	//var object:Sprite;
+	
 	public function new(viewport:FlxPoint, sizeInTiles:FlxPoint, tileSize:FlxPoint, tileHeightOffset:Float) 
 	{
 		super();
@@ -85,6 +98,9 @@ class FlxIsoTilemap extends FlxObject
 		layers = new Array<iso.MapLayer>();
 		frameCollections = new Array<FlxFramesCollection>();
 		graphics = new Array<FlxGraphic>();
+		
+		//object = new Sprite();
+		//Lib.current.stage.addChild(object);
 		
 		init();
 	}
@@ -110,13 +126,18 @@ class FlxIsoTilemap extends FlxObject
 		trace('viewportBounds : ${viewportBounds.toString()}');
 		
 		//This is needed for mouse detection (TODO: fix)
-		viewport = new Sprite();
+/*		viewport = new Sprite();
 		FlxG.stage.addChild(viewport);
 		
 		var gfx = viewport.graphics;
 		gfx.beginFill(0x0, 0);
 		gfx.drawRect(0, 0, viewportWidth, viewportHeight);
-		gfx.endFill();
+		gfx.endFill();*/
+		
+/*		var gfx = object.graphics;
+		gfx.beginFill(0x0, 0.5);
+		gfx.drawRect(0, 0, viewportWidth, viewportHeight);
+		gfx.endFill();*/
 		
 		//Actual viewport, used with offset to correctly perform the culling
 		offsetViewportBounds = new Rectangle(viewportBounds.x - tile_width,
@@ -128,11 +149,6 @@ class FlxIsoTilemap extends FlxObject
 		//Init draw helpers
 		matrix = new FlxMatrix();
 		offset = new FlxPoint();
-	}
-	
-	override public function update(elapsed:Float):Void
-	{
-		updateViewport();
 	}
 	
 	public function updateViewport()
@@ -152,8 +168,8 @@ class FlxIsoTilemap extends FlxObject
 			var j_end:Int = 0;
 			var alt_count:Int = 0;
 			
-			//layers[k].viewportTiles = [];
 			layers[k].viewportTiles.splice(0, layers[k].viewportTiles.length);
+			
 			var layer = layers[k];
 			
 			if (layer.isDynamic)
@@ -180,7 +196,9 @@ class FlxIsoTilemap extends FlxObject
 					
 					var stack = layer.stacks[tY][tX];
 					
-					if (stack.length == 1 && stack.root.type == -1)
+					if (stack == null) continue;
+					
+					if (stack.length == 0 && stack.id == -1)
 						continue;
 					
 					//Experimental: Tile animation update
@@ -199,18 +217,78 @@ class FlxIsoTilemap extends FlxObject
 		}
 	}
 	
-	override public function draw():Void
+/*	override public function update(elapsed:Float):Void
 	{
-		drawViewport(cameras[0]);
+		updateViewport();
 	}
 	
-	public function drawViewport(Camera:FlxCamera)
+	override public function draw():Void
+	{
+		if (FlxG.stage == null) return;
+		
+		//var renderSession = @:privateAccess FlxG.stage.__renderer.renderSession;
+		var renderer = @:privateAccess cast(Lib.current.stage.__renderer, GLRenderer);
+		var renderSession = @:privateAccess renderer.renderSession;
+		
+		//var gl = renderer.gl;
+		//renderer.setViewport (0, 0, renderer.width, renderer.height);
+		//
+		//gl.bindFramebuffer (gl.FRAMEBUFFER, renderer.defaultFramebuffer);
+		//
+		//if (renderer.transparent) {
+			//
+			//gl.clearColor (0, 0, 0, 0);
+			//
+		//} else {
+			//
+			////gl.clearColor (Lib.current.stage.__colorSplit[0], Lib.current.stage.__colorSplit[1], Lib.current.stage.__colorSplit[2], 1);
+			//gl.clearColor (0, 0, 0, 0);
+			//
+		//}
+		//
+		//gl.clear (gl.COLOR_BUFFER_BIT);
+		////renderDisplayObject (stage, projection);
+		//
+		//
+		//renderSession.blendModeManager.setBlendMode (openfl.display.BlendMode.NORMAL);
+		//
+		//renderSession.drawCount = 0;
+		//renderSession.currentBlendMode = null;
+		//
+		//renderer.spriteBatch.begin (renderSession);
+		//renderer.filterManager.begin (renderSession, null);
+		//
+		//GLRenderer.renderBitmap(object, renderSession);
+		
+		
+		//displayObject.__renderGL (renderSession);
+		GLIsoTilemap.render(this, renderSession);
+		
+		//renderer.spriteBatch.finish();
+	}*/
+	
+	override public function __update (transformOnly:Bool, updateChildren:Bool, ?maskGraphics:Graphics = null):Void {
+		super.__update(transformOnly, updateChildren, maskGraphics);
+		
+		updateViewport();
+	}
+	
+	@:noCompletion @:dox(hide) public override function __renderGL (renderSession:RenderSession):Void {
+		
+		if (stage == null) return;
+		if (renderSession == null) return;
+		
+		GLIsoTilemap.render(this, renderSession);
+	}
+	
+	public function drawViewport()
 	{
 		for (k in 0...layers.length) {
 			var layer = layers[k];
 			var count:Int = 0;
 			
-			drawItem = Camera.startQuadBatch(graphics[layer.tilesetId], false, false, null, false);
+			//Flixel Renderer
+			//drawItem = Camera.startQuadBatch(graphics[layer.tilesetId], false, false, null, false);
 			
 			for (i in 0...layer.viewportTiles.length) {
 				var stack = layer.viewportTiles[i];
@@ -234,13 +312,17 @@ class FlxIsoTilemap extends FlxObject
 						matrix.translate(tile_width / 2, 80);
 						
 						//TODO: Fix global scale positioning of shadow
-						matrix.translate(origin.x + (tile.world_x * scale.x) + Std.int(cameraScroll.x), origin.y + (tile.world_y * scale.y) + Std.int(cameraScroll.y));
+						matrix.translate(origin.x + (tile.x * scale.x) + Std.int(cameraScroll.x), origin.y + (tile.y * scale.y) + Std.int(cameraScroll.y));
 						
-						var shadowFrame = frameCollections[layer.tilesetId].getByIndex(tile.shadowId);
-						drawItem.addQuad(shadowFrame, matrix, null);
+						//Flixel Renderer
+						//var shadowFrame = frameCollections[layer.tilesetId].getByIndex(tile.shadowId);
+						
+						//Flixel Renderer
+						//drawItem.addQuad(shadowFrame, matrix, null);
 					}
 					
-					frame = frameCollections[layer.tilesetId].getByIndex(tile.type);
+					//Flixel Renderer
+					//frame = frameCollections[layer.tilesetId].getByIndex(tile.id);
 					
 					//When flipping we must add the tile width / height
 					offset.set(tile.facing.x < 0 ? tile_width : 0, tile.facing.y < 0 ? tile_height : 0);
@@ -257,12 +339,30 @@ class FlxIsoTilemap extends FlxObject
 					matrix.translate(tile_width / 2, 80);
 					
 					//Actual tile translation
-					matrix.translate(origin.x + tile.world_x + Std.int(cameraScroll.x), origin.y + (tile.world_y - tile.world_z) + Std.int(cameraScroll.y));
+					matrix.translate(origin.x + tile.x + Std.int(cameraScroll.x), origin.y + (tile.y - tile.z) + Std.int(cameraScroll.y));
 					
-					drawItem.addQuad(frame, matrix, null);
+					//Flixel Renderer
+					//drawItem.addQuad(frame, matrix, null);
+					
 				}
 			}
 		}
+	}
+	
+	public function getTileset(gfx:BitmapData, tileWidth:Int, tileHeight:Int):Tileset
+	{
+		var tileset = new Tileset(gfx);
+		
+		var widthInTiles:Int = Std.int(gfx.width / tileWidth);
+		var totalTileTypes:Int = Std.int(widthInTiles * gfx.height / tileHeight);
+		for (i in 0...totalTileTypes) {
+			var x:Int = Std.int(i % widthInTiles);
+			var y:Int = Std.int(i / widthInTiles);
+			
+			tileset.addRect(new Rectangle(x * tile_width, y * tile_height, tile_width, tile_height));
+		}
+		
+		return tileset;
 	}
 	
 	public function addTileset(gfx:FlxTilemapGraphicAsset, tileWidth:Int, tileHeight:Int):Int
@@ -300,26 +400,27 @@ class FlxIsoTilemap extends FlxObject
 	}
 
 	//Separates a layer of tile types from a 2D array and returns it
-	public function addLayerFromTileArray(indices:Array<Array<Int>>, tiles:Array<Int>, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
+	public function addLayerFromTileArray(indices:Array<Array<Int>>, tiles:Array<Int>, tileset:Tileset, isDynamic:Bool = false, fillIndex:Int = -1):Int
 	{
 		var layerData = new Array<Array<iso.Stack>>();
-		var layer = new iso.MapLayer(this, [], [], tilesetId, isDynamic);
+		var layer = new iso.MapLayer(tileset, [], [], isDynamic);
+		layer.map = this;
 		
 		for (i in 0...map_h) {
 			layerData[i] = new Array<iso.Stack>();
 			for (j in 0...map_w) {
 				var x:Float = ((j - i) * (tile_width / 2));
 				var y:Float = ((j + i) * ((tile_height - height_offset) / 2));
-				layerData[i][j] = new iso.Stack(new iso.IsoTile(indices[i][j], x, y, j, i));
+				layerData[i][j] = new iso.Stack(indices[i][j], x, y, 0);
 				
 				var changeIndex = true;
 				for (k in 0...tiles.length) {
-					if (layerData[i][j].root.type == tiles[k])
+					if (layerData[i][j].id == tiles[k])
 						changeIndex = false;
 				}
 				
 				if (changeIndex)
-					layerData[i][j].root.type = fillIndex;
+					layerData[i][j].id = fillIndex;
 			}
 		}
 		
@@ -328,26 +429,25 @@ class FlxIsoTilemap extends FlxObject
 		return layers.length - 1;
 	}
 	
-	public function addLayerFromTileRange(indices:Array<Array<Int>>, startTile:Int, length:Int, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
+	public function addLayerFromTileRange(indices:Array<Array<Int>>, startTile:Int, length:Int, tileset:Tileset, isDynamic:Bool = false, fillIndex:Int = -1):Int
 	{
 		var layerData = new Array<Array<iso.Stack>>();
-		var layer = new iso.MapLayer(this, [], [], tilesetId, isDynamic);
+		var layer = new iso.MapLayer(tileset, [], [], isDynamic);
 		
 		for (i in 0...map_h) {
 			layerData[i] = new Array<iso.Stack>();
 			for (j in 0...map_w) {
 				var x:Float = ((j - i) * (tile_width / 2));
 				var y:Float = ((j + i) * ((tile_height - height_offset) / 2));
-				layerData[i][j] = new iso.Stack(new iso.IsoTile(indices[i][j], x, y, j, i));
-				
+				layerData[i][j] = new iso.Stack(indices[i][j], x, y, 0);
 				var changeIndex = true;
 				for (k in startTile...length) {
-					if (layerData[i][j].root.type == k)
+					if (layerData[i][j].id == k)
 						changeIndex = false;
 				}
 				
 				if (changeIndex)
-					layerData[i][j].root.type = fillIndex;
+					layerData[i][j].id = fillIndex;
 			}
 		}
 		
@@ -356,16 +456,17 @@ class FlxIsoTilemap extends FlxObject
 		return layers.length - 1;
 	}
 	
-	public function addEmptyLayer(tilesetId:Int, fillIndex:Int = -1):Int
+	public function addEmptyLayer(tileset:Tileset, fillIndex:Int = -1):Int
 	{
 		var layerData = new Array<Array<iso.Stack>>();
-		var layer = new iso.MapLayer(this, [], [], tilesetId, false);
+		var layer = new iso.MapLayer(tileset, [], [], false);
+		
 		for (i in 0...map_h) {
 			layerData[i] = new Array<iso.Stack>();
 			for (j in 0...map_w) {
 				var x:Float = ((j - i) * (tile_width / 2));
 				var y:Float = ((j + i) * ((tile_height - height_offset) / 2));
-				layerData[i][j] = new iso.Stack(new iso.IsoTile(fillIndex, x, y, j, i));
+				layerData[i][j] = new iso.Stack(fillIndex, x, y, 0);
 			}
 		}
 		
@@ -413,9 +514,9 @@ class FlxIsoTilemap extends FlxObject
 		return new FlxPoint(cX, cY);
 	}
 	
-	public function getWorldToScreen(world_x:Float, world_y:Float):FlxPoint
+	public function getWorldToScreen(x:Float, y:Float):FlxPoint
 	{
-		return new FlxPoint(world_x + origin.x + (tile_height - height_offset), world_y + origin.y + tile_width);
+		return new FlxPoint(x + origin.x + (tile_height - height_offset), y + origin.y + tile_width);
 	}
 	
 	public function updateScale(newScale:Float)

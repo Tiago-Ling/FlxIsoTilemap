@@ -1,4 +1,5 @@
 package iso;
+import openfl.display.Tile;
 
 /**
  * ...
@@ -6,34 +7,46 @@ package iso;
  */
 class Stack
 {
-	public var z_height:Float;
-	public var root:IsoTile;
-	public var length:Int;
+	public var id:Int;
+	public var x:Float;
+	public var y:Float;
+	public var z:Float;
+	
+	public var length(get, null):Int;
 	var members:Array<IsoTile>;
 	
-	public function new(root:IsoTile) 
+	public function new(id:Int, x:Float, y:Float, z:Float)
 	{
-		this.root = root;
-		z_height = this.root.z_height;
-		members = new Array<IsoTile>();
-		push(root);
+		this.id = id;
+		this.x = x;
+		this.y = y;
+		this.z = z;
 	}
 	
 	public function push(obj:IsoTile):Int
 	{
-		z_height += obj.z_height;
+		if (members == null) members = new Array<IsoTile>();
+		
+		z += obj.z_height;
 		return length = members.push(obj);
 	}
 	
 	public function pop(obj:IsoTile):Bool
 	{
-		z_height -= obj.z_height;
+		z -= obj.z_height;
 		return members.remove(obj);
 	}
 	
 	public function get(index:Int):IsoTile
 	{
 		return members[index];
+	}
+	
+	public function get_length():Int
+	{
+		if (members == null) return 0;
+		
+		return members.length;
 	}
 	
 }
