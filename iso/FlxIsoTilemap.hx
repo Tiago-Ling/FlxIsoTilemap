@@ -10,6 +10,7 @@ import flixel.graphics.tile.FlxDrawTilesItem;
 import flixel.math.FlxMatrix;
 import flixel.math.FlxPoint;
 import flixel.system.FlxAssets.FlxTilemapGraphicAsset;
+import haxe.xml.Fast;
 import iso.IsoTile;
 import iso.MapLayer;
 import iso.Stack;
@@ -65,16 +66,15 @@ class FlxIsoTilemap extends FlxObject
 	var topRight:FlxPoint;
 	var botLeft:FlxPoint;
 	var botRight:FlxPoint;
+	var map_pixel_width:Float;
+	var map_pixel_height:Float;
 	
-	public function new(viewport:FlxPoint, sizeInTiles:FlxPoint, tileSize:FlxPoint, tileHeightOffset:Float) 
+	public function new(viewport:FlxPoint, tileSize:FlxPoint, tileHeightOffset:Float) 
 	{
 		super();
 		
 		viewportWidth = viewport.x;
 		viewportHeight = viewport.y;
-		
-		map_w = Std.int(sizeInTiles.x);
-		map_h = Std.int(sizeInTiles.y);
 		
 		tile_width = tile_gfx_width = tileSize.x;
 		tile_height = tile_gfx_height = tileSize.y;
@@ -86,15 +86,16 @@ class FlxIsoTilemap extends FlxObject
 		layers = new Array<iso.MapLayer>();
 		frameCollections = new Array<FlxFramesCollection>();
 		graphics = new Array<FlxGraphic>();
-		
-		init();
 	}
 	
-	function init()
+	public function init(sizeInTiles:FlxPoint)
 	{
+		map_w = Std.int(sizeInTiles.x);
+		map_h = Std.int(sizeInTiles.y);
+		
 		//Map size in pixels, used to calculate origin and bounds
-		var map_pixel_width = map_h * tile_width + ((map_w - map_h) * (tile_height - height_offset));
-		var map_pixel_height = map_w * (tile_height - height_offset) + ((map_h - map_w) * (tile_height - height_offset) / 2);
+		map_pixel_width = map_h * tile_width + ((map_w - map_h) * (tile_height - height_offset));
+		map_pixel_height = map_w * (tile_height - height_offset) + ((map_h - map_w) * (tile_height - height_offset) / 2);
 		trace('Map size in pixels : $map_pixel_width x $map_pixel_height');
 		
 		//Calculating origin so the map is always centered on the screen (does not take into account walls (height_offset))
@@ -102,22 +103,18 @@ class FlxIsoTilemap extends FlxObject
 		origin = new FlxPoint(FlxG.stage.stageWidth / 2 - map_pixel_width / 2 + offset_x, FlxG.stage.stageHeight / 2 - map_pixel_height / 2 - height_offset);
 		trace('Origin : ${origin.toString()}');
 		
-		//Tilemap Bounding rectangle, yellow (includes height_offset for walls)
-		var mapBounds:Rectangle = new Rectangle(origin.x - (map_h - 1) * tile_width / 2, origin.y, map_pixel_width, map_pixel_height + height_offset);
-		trace('MapBounds : ${mapBounds.toString()}');
-		
 		//User-defined viewport
 		viewportBounds = new Rectangle(FlxG.stage.stageWidth / 2 - viewportWidth / 2, FlxG.stage.stageHeight / 2 - viewportHeight / 2, viewportWidth, viewportHeight);
 		trace('viewportBounds : ${viewportBounds.toString()}');
 		
 		//This is needed for mouse detection (TODO: fix)
-		viewport = new Sprite();
+/*		viewport = new Sprite();
 		FlxG.stage.addChild(viewport);
 		
 		var gfx = viewport.graphics;
 		gfx.beginFill(0x0, 0);
 		gfx.drawRect(0, 0, viewportWidth, viewportHeight);
-		gfx.endFill();
+		gfx.endFill();*/
 		
 		//Actual viewport, used with offset to correctly perform the culling
 		offsetViewportBounds = new Rectangle(viewportBounds.x - tile_width,
@@ -153,7 +150,6 @@ class FlxIsoTilemap extends FlxObject
 			var j_end:Int = 0;
 			var alt_count:Int = 0;
 			
-			//layers[k].viewportTiles = [];
 			layers[k].viewportTiles.splice(0, layers[k].viewportTiles.length);
 			var layer = layers[k];
 			
@@ -181,6 +177,7 @@ class FlxIsoTilemap extends FlxObject
 					
 					var stack = layer.stacks[tY][tX];
 					
+					if (stack == null) continue;
 					if (stack.length == 1 && stack.root.type == -1)
 						continue;
 					
@@ -219,7 +216,7 @@ class FlxIsoTilemap extends FlxObject
 				for (j in 0...stack.length) {
 					
 					var tile = stack.get(j);
-					if (tile == null) continue;
+					if (tile == null || tile.type == -1 ) continue;
 					
 					//Experimental: draw shadows
 					if (tile.hasShadow) {
@@ -241,23 +238,18 @@ class FlxIsoTilemap extends FlxObject
 						drawItem.addQuad(shadowFrame, matrix, null);
 					}
 					
+					var collection = frameCollections[layer.tilesetId];
 					frame = frameCollections[layer.tilesetId].getByIndex(tile.type);
 					
+					//Tile matrix
 					//When flipping we must add the tile width / height
 					offset.set(tile.facing.x < 0 ? tile_width : 0, tile.facing.y < 0 ? tile_height : 0);
 					
 					matrix.identity();
 					
-					//Translate to tile pivot
 					matrix.translate(-tile_width / 2, -80);
-					
-					//Apply transformations (scale, rotate, skew)
 					matrix.scale(scale.x * tile.facing.x, scale.y * tile.facing.y);
-					
-					//Translate back from tile pivot
 					matrix.translate(tile_width / 2, 80);
-					
-					//Actual tile translation
 					matrix.translate(origin.x + tile.world_x + Std.int(cameraScroll.x), origin.y + (tile.world_y - tile.world_z) + Std.int(cameraScroll.y));
 					
 					drawItem.addQuad(frame, matrix, null);
@@ -272,7 +264,7 @@ class FlxIsoTilemap extends FlxObject
 		{
 			frameCollections.push(cast gfx);
 			graphics.push(cast(gfx, FlxFramesCollection).parent);
-			return -1;
+			return frameCollections.length - 1;
 		}
 		
 		var graph:FlxGraphic = FlxG.bitmap.add(cast gfx);
@@ -303,35 +295,160 @@ class FlxIsoTilemap extends FlxObject
 	public function fromCsvStringToArray(MapData:String):Array<Array<Int>>
 	{
 		// path to map data file?
-		if (Assets.exists(MapData))
-		{
+		if (Assets.exists(MapData)) {
 			MapData = Assets.getText(MapData);
 		}
-
+		
 		var result:Array<Array<Int>> = new Array<Array<Int>>();
 		var rowresult:Array<Int> = new Array<Int>();
 		var rows:Array<String> = StringTools.trim(MapData).split("\n");
 		var row:String;
-
+		
 		for (row in rows) {
-
-		    if (row == "") {
-		        continue;
-		    }
-
-		    var entries:Array<String> = row.split(",");
-		    var entry:String;
-		    rowresult = new Array<Int>();
-		    for (entry in entries) {
-
-		        if(entry != "") {
-		            rowresult.push(Std.parseInt(entry));
-		        }
-		    }
-		    result.push(rowresult);
+			
+			if (row == "") {
+				continue;
+			}
+			
+			var entries:Array<String> = row.split(",");
+			var entry:String;
+			rowresult = new Array<Int>();
+			
+			for (entry in entries) {
+				if(entry != "") {
+					rowresult.push(Std.parseInt(entry));
+				}
+			}
+			result.push(rowresult);
 		}
-
+		
 		return result;
+	}
+	
+	public function fromTiledXmlToArray(Data:List<Fast>, w:Int, h:Int):Array<Array<Int>>
+	{
+		var res = new Array<Array<Int>>();
+		for (i in 0...h) {
+			res[i] = new Array<Int>();
+			for (j in 0...w) {
+				res[i][j] = -1;
+			}
+		}
+		
+		var count:Int = 0;
+		for (tile in Data) {
+			var j:Int = Std.int(count % w);
+			var i:Int = Std.int(count / w);
+			
+			var id = Std.parseInt(tile.att.gid);
+			
+			res[i][j] = id;
+			count++;
+		}
+		
+		return res;
+	}
+	
+	public function loadFromTiled(MapData:String)
+	{
+		var xmlData = Xml.parse(MapData);
+		var fData = new Fast(xmlData.firstElement());
+		
+		//Tilesets - ID will be given by either custom property "ID" or loop order
+		var tilesetCount:Int = 0;
+		for (tileset in fData.nodes.tileset) {
+			
+			var src:String = tileset.node.image.att.source;
+			var res:Int = addTileset(src, Std.parseInt(tileset.att.tilewidth), Std.parseInt(tileset.att.tileheight));
+			
+			//TODO: Tileset properties
+			//TODO: Tile properties
+			
+			tilesetCount++;
+		}
+		
+		var layerCount = 0;
+		//Layers - ID will be given by loop order. Will work only with tilesets with same ID
+		for (l in fData.nodes.layer) {
+			
+			var tiles:Array<Array<Int>> = null;
+			var isCsv:Bool = l.node.data.has.encoding;
+			
+			//Attribute 'encoding' only appears when using CSV
+			if (isCsv) {
+				tiles = fromCsvStringToArray(l.node.data.innerHTML);
+			} else {
+				//When no encoding, it must be XML
+				tiles = fromTiledXmlToArray(l.node.data.nodes.tile, Std.parseInt(l.att.width), Std.parseInt(l.att.height));
+			}
+			
+			//TODO: Other encoding formats (Base64)
+			
+			var layerData = new Array<Array<iso.Stack>>();
+			
+			//TODO: isDynamic (must check whether an object group with the same id exists
+			var layer = new iso.MapLayer(this, [], [], 0, false);
+			
+			var rows = tiles.length;
+			for (i in 0...rows) {
+				layerData[i] = new Array<iso.Stack>();
+				
+				var cols = -1;
+				if (isCsv)
+					//Removing one from col length as Tiled includes ',' at the end of each row
+					cols = i == rows - 1 ? tiles[i].length : tiles[i].length - 1;
+				else
+					//Xml encoding does not have any problems
+					cols = tiles[i].length;
+					
+				for (j in 0...cols) {
+					var x:Float = ((j - i) * (tile_width / 2));
+					var y:Float = ((j + i) * ((tile_height - height_offset) / 2));
+					layerData[i][j] = new iso.Stack(new iso.IsoTile(tiles[i][j] - 1, x, y, j, i));
+				}
+			}
+			
+			layer.stacks = layerData;
+			layers.push(layer);
+			
+			//TODO: Layer properties
+			
+			layerCount++;
+		}
+		
+		//Init map
+		init(FlxPoint.weak(layers[0].stacks.length, layers[0].stacks[0].length));
+		
+		var mapBounds:Rectangle = getBounds();
+		
+		layerCount = 0;
+		//Dynamic object layers - ID will be given by loop order. Will be added to the layer with same ID
+		for (objLayer in fData.nodes.objectgroup) {
+			
+			layers[layerCount].isDynamic = true;
+			
+			for (object in objLayer.nodes.object) {
+				
+				var pos = FlxPoint.get(fclamp(Std.parseFloat(object.att.x), mapBounds.x, mapBounds.x + mapBounds.width),
+									   fclamp(Std.parseFloat(object.att.y), mapBounds.y, mapBounds.y + mapBounds.height));
+				
+				var screen_pos:FlxPoint = getWorldToScreen(pos.x, pos.y);
+				
+				//TODO: Find a general offset based on tile size
+				var iso_pos:FlxPoint = getScreenToIso(screen_pos.x - 16, screen_pos.y + 16);
+				iso_pos.x = fclamp(iso_pos.x, 0, map_w - 1);
+				iso_pos.y = fclamp(iso_pos.y, 0, map_h - 1);
+				
+				//TODO: Object properties
+				var id:Int = 66;
+				var isMoveable:Bool = false;
+				layers[layerCount].addObject(new IsoTile(id, pos.x, pos.y, Std.int(iso_pos.x), Std.int(iso_pos.y)), isMoveable);
+			}
+			
+			//TODO: Object layer properties (applies to all members maybe?)
+			
+			layerCount++;
+		}
 	}
 
 	public function addLayerFromCsv(MapData:String, tiles:Array<Int>, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
@@ -343,7 +460,7 @@ class FlxIsoTilemap extends FlxObject
 	{
 		return addLayerFromTileRange(fromCsvStringToArray(MapData), startTile, length, tilesetId, isDynamic, fillIndex);
 	}
-
+	
 	//Separates a layer of tile types from a 2D array and returns it
 	public function addLayerFromTileArray(indices:Array<Array<Int>>, tiles:Array<Int>, tilesetId:Int, isDynamic:Bool = false, fillIndex:Int = -1):Int
 	{
@@ -482,5 +599,17 @@ class FlxIsoTilemap extends FlxObject
 											 viewportBounds.y - (tile_height - height_offset),
 											 viewportBounds.width + 2 * tile_width,
 											 viewportBounds.height + 2 * (tile_height - height_offset) + height_offset);	//Add height_offset to account for the wall height at the bottom of the screen
+	}
+	
+	public function getBounds():Rectangle
+	{
+		//Tilemap Bounding rectangle, yellow (includes height_offset for walls)
+		return new Rectangle(origin.x - (map_h - 1) * tile_width / 2, origin.y, map_pixel_width, map_pixel_height + height_offset);
+	}
+	
+	public function fclamp(value:Float, min:Float, max:Float):Float
+	{
+		if (value < min) value = min else if (value > max) value = max;
+		return value;
 	}
 }

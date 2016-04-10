@@ -38,6 +38,8 @@ class MapLayer
 	{
 		stacks[obj.iso_y][obj.iso_x].push(obj);
 		
+		if (dynamicObjects == null) dynamicObjects = new Array<iso.IsoTile>();
+		
 		if (isMoveable)
 			dynamicObjects.push(obj);
 	}

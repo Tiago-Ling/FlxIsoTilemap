@@ -36,9 +36,10 @@ class MapGeneratorState extends FlxState
 		
 		FlxG.mouse.visible = false;
 		
-		map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(MAP_WIDTH, MAP_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
+		map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
 		map.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
 		map.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
+		map.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
 		add(map);
 		
 		mapGen = new MapGenerator(map.map_w, map.map_h, 3, 7, 15, false);
@@ -84,10 +85,10 @@ class MapGeneratorState extends FlxState
 	
 	function handleKeyboardInput(elapsed:Float)
 	{
-    if (FlxG.keys.justPressed.ESCAPE) {
-      FlxG.switchState(new MenuState());
-    }
-
+		if (FlxG.keys.justPressed.ESCAPE) {
+			FlxG.switchState(new MenuState());
+		}
+		
 		if (FlxG.keys.pressed.DOWN) {
 			map.cameraScroll.y -= 200 * elapsed;
 		} 
