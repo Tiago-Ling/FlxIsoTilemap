@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="isometric" renderorder="right-down" width="30" height="30" tilewidth="64" tileheight="32" nextobjectid="27">
  <tileset firstgid="1" name="dynamic_tileset" tilewidth="64" tileheight="96">
-  <image source="assets/images/dynamic_tileset.png" width="2048" height="672"/>
+  <image source="../images/dynamic_tileset.png" width="2048" height="672"/>
  </tileset>
  <tileset firstgid="225" name="new_pixel_64_96" tilewidth="64" tileheight="96">
-  <image source="assets/images/new_pixel_64_96.png" width="1024" height="384"/>
+  <image source="../images/new_pixel_64_96.png" width="1024" height="384"/>
  </tileset>
  <layer name="Ground" width="30" height="30">
   <properties>
