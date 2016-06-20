@@ -1,4 +1,5 @@
 package iso;
+import flixel.FlxSprite;
 import flixel.math.FlxPoint;
 import iso.Stack;
 
@@ -21,80 +22,141 @@ class MapLayer
 	var minHeight:Float = 0;
 	var maxHeight:Float = 160;
 	
-	public function new(map:FlxIsoTilemap, stacks:Array<Array<iso.Stack>>, viewportTiles:Array<iso.Stack>, tilesetId:Int, isDynamic:Bool = false) 
+	public function new(stacks:Array<Array<iso.Stack>>, viewportTiles:Array<iso.Stack>, tilesetId:Int, isDynamic:Bool = false) 
 	{
-		this.map = map;
 		this.stacks = stacks;
 		this.viewportTiles = viewportTiles;
 		this.tilesetId = tilesetId;
-		this.isDynamic = isDynamic;
+		this.isDynamic = false;
+	}
+	
+	public function addTileAtTilePos(obj:iso.IsoTile, r:Int, c:Int)
+	{
+		stacks[c][r].push(obj);
+	}
+	
+	public function addTileAtWorldPos(obj:iso.IsoTile, x:Float, y:Float)
+	{
+		var screenPos = map.getWorldToScreen(x, y);
+		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
+		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].push(obj);
+	}
+	
+	public function addSpriteAtTilePos(obj:FlxSprite, r:Int, c:Int)
+	{
+		//Create new iso tile and set a reference to the FlxSprite inside it
+		var stack = stacks[r][c];
+		obj.setPosition(stack.root.x, stack.root.y);
 		
-		//Experimental
-		if (isDynamic)
+		var tile = new IsoTile(0, obj.x, obj.y, c, r, obj);
+		stack.push(tile);
+		
+		if (dynamicObjects == null) {
 			dynamicObjects = new Array<iso.IsoTile>();
+			isDynamic = true;
+		}
+		
+		if (isDynamic) {
+			dynamicObjects.push(tile);
+		}
 	}
 	
-	public function addObject(obj:iso.IsoTile, isMoveable:Bool)
+	public function addSpriteAtWorldPos(obj:FlxSprite, x:Float, y:Float)
 	{
-		stacks[obj.iso_y][obj.iso_x].push(obj);
+		//Create new iso tile and set a reference to the FlxSprite inside it
+		obj.setPosition(x, y);
 		
-		if (dynamicObjects == null) dynamicObjects = new Array<iso.IsoTile>();
+		var screenPos = map.getWorldToScreen(x, y);
+		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
+		var tile = new IsoTile(0, x, y, Std.int(tilePos.x), Std.int(tilePos.y), obj);
+		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].push(tile);
 		
-		if (isMoveable)
-			dynamicObjects.push(obj);
+		if (dynamicObjects == null) {
+			dynamicObjects = new Array<iso.IsoTile>();
+			isDynamic = true;
+		}
+		
+		if (isDynamic) {
+			dynamicObjects.push(tile);
+		}
 	}
 	
-	public function popObject(obj:iso.IsoTile, isMoveable:Bool) {
-		stacks[obj.iso_y][obj.iso_x].pop(obj);
+	public function removeObject(obj:iso.IsoTile) {
 		
-		if (isMoveable)
-			dynamicObjects.remove(obj);
+		var screenPos = map.getWorldToScreen(obj.x, obj.y);
+		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
+		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].pop(obj);
+		
+		if (obj.isDynamic) {
+			var id:Int = -1;
+			for (dObj in dynamicObjects) {
+				if (obj == dObj)
+					break;
+				id++;
+			}
+			
+			if (id > -1)
+				dynamicObjects.splice(id, 1);
+				
+			if (dynamicObjects.length == 0) {
+				isDynamic = false;
+				dynamicObjects = null;
+			}
+		}
 	}
 	
-	public function update(delta:Float)
+	public function update(elapsed:Float)
 	{
+		if (map == null) return;
+		
 		for (i in 0...dynamicObjects.length) {
 			
 			//Check if its position changed
 			var tile = dynamicObjects[i];
 			
+			if (tile == null) continue;
+			
+			//Update position and animation
+			tile.update(elapsed);
+			
 			//Checking if the tile moved to another stack
 			
 			//If it now belongs to a new stack, pop it out of the old one
-			var screen_pos:FlxPoint = map.getWorldToScreen(tile.world_x, tile.world_y);
+			var screen_pos:FlxPoint = map.getWorldToScreen(tile.x, tile.y);
 			
 			//TODO: Find a general offset based on tile size
 			var newIso:FlxPoint = map.getScreenToIso(screen_pos.x - 16, screen_pos.y + 16);
 			
-			if (tile.iso_x != newIso.x || tile.iso_y != newIso.y) {
+			if (tile.c != newIso.x || tile.r != newIso.y) {
 				
-				popObject(tile, true);
+				removeObject(tile);
 				
 				//Then update its new iso position (stack row and column)
-				tile.iso_x = Std.int(newIso.x);
-				tile.iso_y = Std.int(newIso.y);
-				
-				//DEPRECATED
-				//tile.drawIndex = Std.int(newIso.y) * map.map_w + Std.int(newIso.x);
+				tile.c = Std.int(newIso.x);
+				tile.r = Std.int(newIso.y);
 				
 				//Add it to the new stack.
-				addObject(tile, true);
+				addTileAtTilePos(tile, tile.c, tile.r);
 			}
 			
 			//Experimental: Apply gravity
-			if (tile.world_z > stacks[tile.iso_y][tile.iso_x].z_height) {
-				var gravity:Float = 200 * delta;
-				tile.world_z -= gravity;
+			if (tile.z > stacks[tile.r][tile.c].z_height) {
+				var gravity:Float = 200 * elapsed;
+				tile.z -= gravity;
 				
-				if (tile.world_z <= stacks[tile.iso_y][tile.iso_x].z_height) {
-					tile.world_z = stacks[tile.iso_y][tile.iso_x].z_height;
-					//trace('Touched ground');
+				if (tile.z <= stacks[tile.r][tile.c].z_height) {
+					tile.z = stacks[tile.r][tile.c].z_height;
 				}
 			}
 			
 			//Experimental: Update tile shadow
 			if (tile.hasShadow) {
-				tile.shadowScale = (1 / (maxHeight - minHeight)) * (maxHeight - tile.world_z);
+				tile.shadowScale = (1 / (maxHeight - minHeight)) * (maxHeight - tile.z);
+			}
+			
+			//Get facing from parent sprite
+			if (tile.parent != null) {
+				tile.facing.set(tile.parent.flipX ? -1 : 1, tile.parent.flipY ? -1 : 1);
 			}
 		}
 	}

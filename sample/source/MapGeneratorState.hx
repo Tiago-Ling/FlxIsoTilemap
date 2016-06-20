@@ -11,6 +11,8 @@ import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.math.FlxMath;
 import iso.FlxIsoTilemap;
+import iso.MapLayer;
+import iso.MapUtils;
 import lime.system.BackgroundWorker;
 
 class MapGeneratorState extends FlxState
@@ -26,9 +28,9 @@ class MapGeneratorState extends FlxState
 	static inline var TILE_HEIGHT:Float = 96;
 	static inline var TILE_HEIGHT_OFFSET:Float = 64;
 	
-	var mapGen:MapGenerator;
-	var map:FlxIsoTilemap;
+	var isoMap:FlxIsoTilemap;
 	var loadTxt:FlxText;
+	var mapLoaded:Bool = false;
 	
 	override public function create():Void
 	{
@@ -36,36 +38,74 @@ class MapGeneratorState extends FlxState
 		
 		FlxG.mouse.visible = false;
 		
-		map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
+/*		map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
+		map.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
+		map.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
+		map.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
+		add(map);*/
+		
+		//#### SYNCHRONOUS MAP LOADING
+		
+/*		var map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
 		map.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
 		map.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
 		map.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
 		add(map);
 		
-		mapGen = new MapGenerator(map.map_w, map.map_h, 3, 7, 15, false);
-		mapGen.setIndices(41, 53, 45, 49, 25, 37, 29, 33, 1, 1, 1, 1, 0); 
+		var mapGen = new MapGenerator(map.map_w, map.map_h, 3, 7, 15, false);
+		mapGen.setIndices(41, 53, 45, 49, 25, 37, 29, 33, 1, 1, 1, 1, 0);
+		mapGen.generate();
+		
+		var mapData:Array<Array<Int>> = mapGen.extractData();
+		
+		map.addLayerFromTileArray(mapData, [0, 1], 0, false, 58);
+		map.addEmptyLayer(1, -1);
+		map.addLayerFromTileRange(mapData, 2, 62, 1, true, -1);
+		
+		FlxTween.manager.clear();
+		
+		mapLoaded = true;*/
+		
+		//#### END
 		
 		//Async map generation (old map generator can be quite slow for maps > 300 x 300)
 		var worker = new BackgroundWorker();
-		
 		worker.doWork.add (function loadMapData(_) {
+			
+			var mapGen = new MapGenerator(MAP_WIDTH, MAP_HEIGHT, 3, 7, 15, false);
+			mapGen.setIndices(41, 53, 45, 49, 25, 37, 29, 33, 1, 1, 1, 1, 0);
 			mapGen.generate();
+			
 			var mapData:Array<Array<Int>> = mapGen.extractData();
 			
-			map.addLayerFromTileArray(mapData, [0, 1], 0, false, 58);
-			map.addEmptyLayer(1, -1);
-			map.addLayerFromTileRange(mapData, 2, 62, 1, true, -1);
+			var layers:Array<MapLayer> = new Array<MapLayer>();
+			layers.push(MapUtils.getLayerFromTileArray(mapData, [0, 1], 0, TILE_WIDTH, TILE_HEIGHT, TILE_HEIGHT_OFFSET, false, 58));
+			layers.push(MapUtils.getEmptyLayer(1, MAP_WIDTH, MAP_HEIGHT, TILE_WIDTH, TILE_HEIGHT, TILE_HEIGHT_OFFSET, -1));
+			layers.push(MapUtils.getLayerFromTileRange(mapData, 2, 62, 1, TILE_WIDTH, TILE_HEIGHT, TILE_HEIGHT_OFFSET, true, -1));
 			
-			worker.sendComplete();
+			worker.sendComplete(layers);
 		});
 		
-		worker.onComplete.add(function onDataLoaded(_) {
+		worker.onComplete.add(function onDataLoaded(layers:Array<MapLayer>) {
+			
+			isoMap = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
+			isoMap.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
+			isoMap.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
+			isoMap.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
+			add(isoMap);
+			
+			for (l in layers) {
+				isoMap.addLayer(l);
+			}
 			
 			FlxTween.manager.clear();
+			
 			loadTxt.alpha = 1.0;
 			loadTxt.alignment = FlxTextAlign.LEFT;
 			loadTxt.setPosition(10, FlxG.height - 30);
 			loadTxt.text = 'Use arrow keys to scroll the map';
+			
+			mapLoaded = true;
 		});
 		
 		loadTxt = new FlxText(0, FlxG.stage.stageHeight / 2 - 15, FlxG.width, 'Loading $MAP_WIDTH x $MAP_HEIGHT ...', 20);
@@ -80,6 +120,8 @@ class MapGeneratorState extends FlxState
 	{
 		super.update(elapsed);
 		
+		if (!mapLoaded) return;
+		
 		handleKeyboardInput(elapsed);
 	}
 	
@@ -90,19 +132,19 @@ class MapGeneratorState extends FlxState
 		}
 		
 		if (FlxG.keys.pressed.DOWN) {
-			map.cameraScroll.y -= 200 * elapsed;
+			isoMap.cameraScroll.y -= 200 * elapsed;
 		} 
 		
 		if (FlxG.keys.pressed.LEFT) {
-			map.cameraScroll.x += 200 * elapsed;
+			isoMap.cameraScroll.x += 200 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.RIGHT) {
-			map.cameraScroll.x -= 200 * elapsed;
+			isoMap.cameraScroll.x -= 200 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.UP) {
-			map.cameraScroll.y += 200 * elapsed;
+			isoMap.cameraScroll.y += 200 * elapsed;
 		}
 	}
 }

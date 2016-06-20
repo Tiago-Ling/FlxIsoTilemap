@@ -7,22 +7,23 @@ package iso;
 class Stack
 {
 	public var z_height:Float;
-	public var root:IsoTile;
-	public var length:Int;
+	public var root(get, null):IsoTile;
+	public var length(get, null):Int;
 	var members:Array<IsoTile>;
 	
-	public function new(root:IsoTile) 
+	public function new(root:IsoTile)
 	{
-		this.root = root;
-		z_height = this.root.z_height;
 		members = new Array<IsoTile>();
 		push(root);
+		
+		z_height = root.z_height;
 	}
 	
 	public function push(obj:IsoTile):Int
 	{
+		members.push(obj);
 		z_height += obj.z_height;
-		return length = members.push(obj);
+		return length;
 	}
 	
 	public function pop(obj:IsoTile):Bool
@@ -34,6 +35,16 @@ class Stack
 	public function get(index:Int):IsoTile
 	{
 		return members[index];
+	}
+	
+	public function get_length():Int
+	{
+		return members.length;
+	}
+	
+	public function get_root():IsoTile
+	{
+		return members[0];
 	}
 	
 }

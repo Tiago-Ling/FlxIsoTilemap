@@ -31,6 +31,8 @@
 	<classpath name="source" />
 	<classpath name="../" />
 	<assets path="assets" />
+	
+	<set name="next" />
 
 	<!-- _______________________________ Libraries ______________________________ -->
 

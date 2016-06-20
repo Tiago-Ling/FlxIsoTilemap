@@ -237,7 +237,7 @@ class MapGenerator {
 	}
 	
 	public function showColorCodes():Void {
-		trace("NW CORNER (" + iNW_CORNER + ") : " + cNW_CORNER);
+/*		trace("NW CORNER (" + iNW_CORNER + ") : " + cNW_CORNER);
 		trace("NE CORNER (" + iNE_CORNER + ") : " + cNE_CORNER);
 		trace("SE CORNER (" + iSE_CORNER + ") : " + cSE_CORNER);
 		trace("SW CORNER (" + iSW_CORNER + ") : " + cSW_CORNER);
@@ -250,7 +250,7 @@ class MapGenerator {
 		trace("ENTRANCE (" + iENTRANCE + ") : " + cENTRANCE);
 		trace("FLOOR (" + iFLOOR + ") : " + cFLOOR);
 		var eSpace:UInt = 0xFF333333;
-		trace("EMPTY SPACE : " + eSpace);
+		trace("EMPTY SPACE : " + eSpace);*/
 	}
 	
 	public function showMinimap(parent:DisplayObjectContainer, scale:Int, align:MapAlign, add:Bool = false):Bitmap {
@@ -309,7 +309,7 @@ class MapGenerator {
 			currentRoomSize = getRoomSize();
 			
 			if (showDebug) {
-				trace("Current room entrance : (" + currentRoomEntrance.x + "," + currentRoomEntrance.y + ")");
+				//trace("Current room entrance : (" + currentRoomEntrance.x + "," + currentRoomEntrance.y + ")");
 				//trace("Current room size : " + currentRoomSize.toString());
 			}
 			
@@ -388,7 +388,7 @@ class MapGenerator {
 			}
 		}
 		
-		trace("TOTAL ROOMS IN THE MAP : " + numRooms);
+		//trace("TOTAL ROOMS IN THE MAP : " + numRooms);
 	}
 	
 	private function reduceRoom(room:Room):Bool {
@@ -446,7 +446,7 @@ class MapGenerator {
 				
 				//Debug
 				if (countX < 0 || countX >= map.width || countY < 0 || countY >= map.height) {
-					trace('Out of bounds:\nmap size : ${map.width},${map.height}\ntile : $indexCountY,$indexCountX');
+					//trace('Out of bounds:\nmap size : ${map.width},${map.height}\ntile : $indexCountY,$indexCountX');
 				}
 				
 				if (countX == startX && countY == startY) { // NW CORNER
@@ -538,7 +538,7 @@ class MapGenerator {
 	
 	public function extractData():Array<Array<Int>>
 	{
-		trace('Extract data -> Map size: ${mapData.length},${mapData[0].length}');
+		//trace('Extract data -> Map size: ${mapData.length},${mapData[0].length}');
 		
 		return mapData;
 	}
