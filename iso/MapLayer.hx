@@ -9,12 +9,11 @@ import iso.Stack;
  */
 class MapLayer
 {
-	public var stacks:Array<Array<iso.Stack>>;
-	public var viewportTiles:Array<iso.Stack>;
+	public var stacks:Array<Array<Stack>>;
 	public var tilesetId:Int;
 	
 	public var isDynamic:Bool;
-	public var dynamicObjects:Array<iso.IsoTile>;
+	public var dynamicObjects:Array<IsoTile>;
 	
 	public var map:FlxIsoTilemap;
 	
@@ -22,23 +21,29 @@ class MapLayer
 	var minHeight:Float = 0;
 	var maxHeight:Float = 160;
 	
-	public function new(stacks:Array<Array<iso.Stack>>, viewportTiles:Array<iso.Stack>, tilesetId:Int, isDynamic:Bool = false) 
+	//Helper variables
+	var screenPos:FlxPoint;
+	var isoPos:FlxPoint;
+	
+	public function new(stacks:Array<Array<Stack>>, tilesetId:Int, isDynamic:Bool = false) 
 	{
 		this.stacks = stacks;
-		this.viewportTiles = viewportTiles;
 		this.tilesetId = tilesetId;
 		this.isDynamic = false;
+		
+		screenPos = new FlxPoint();
+		isoPos = new FlxPoint();
 	}
 	
-	public function addTileAtTilePos(obj:iso.IsoTile, r:Int, c:Int)
+	public function addTileAtTilePos(obj:IsoTile, r:Int, c:Int)
 	{
-		stacks[c][r].push(obj);
+		stacks[r][c].push(obj);
 	}
 	
-	public function addTileAtWorldPos(obj:iso.IsoTile, x:Float, y:Float)
+	public function addTileAtWorldPos(obj:IsoTile, x:Float, y:Float)
 	{
-		var screenPos = map.getWorldToScreen(x, y);
-		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
+		var screenPos = map.getWorldToScreen(new FlxPoint(), x, y);
+		var tilePos = map.getScreenToIso(new FlxPoint(), screenPos.x, screenPos.y);
 		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].push(obj);
 	}
 	
@@ -46,13 +51,15 @@ class MapLayer
 	{
 		//Create new iso tile and set a reference to the FlxSprite inside it
 		var stack = stacks[r][c];
+		if (stack == null) return;
+		
 		obj.setPosition(stack.root.x, stack.root.y);
 		
 		var tile = new IsoTile(0, obj.x, obj.y, c, r, obj);
 		stack.push(tile);
 		
 		if (dynamicObjects == null) {
-			dynamicObjects = new Array<iso.IsoTile>();
+			dynamicObjects = new Array<IsoTile>();
 			isDynamic = true;
 		}
 		
@@ -66,13 +73,13 @@ class MapLayer
 		//Create new iso tile and set a reference to the FlxSprite inside it
 		obj.setPosition(x, y);
 		
-		var screenPos = map.getWorldToScreen(x, y);
-		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
+		var screenPos = map.getWorldToScreen(new FlxPoint(), x, y);
+		var tilePos = map.getScreenToIso(new FlxPoint(), screenPos.x, screenPos.y);
 		var tile = new IsoTile(0, x, y, Std.int(tilePos.x), Std.int(tilePos.y), obj);
 		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].push(tile);
 		
 		if (dynamicObjects == null) {
-			dynamicObjects = new Array<iso.IsoTile>();
+			dynamicObjects = new Array<IsoTile>();
 			isDynamic = true;
 		}
 		
@@ -81,11 +88,9 @@ class MapLayer
 		}
 	}
 	
-	public function removeObject(obj:iso.IsoTile) {
+	public function removeObject(obj:IsoTile) {
 		
-		var screenPos = map.getWorldToScreen(obj.x, obj.y);
-		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
-		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].pop(obj);
+		if (!stacks[obj.r][obj.c].pop(obj)) trace(' #### Could not remove obj!');
 		
 		if (obj.isDynamic) {
 			var id:Int = -1;
@@ -107,7 +112,7 @@ class MapLayer
 	
 	public function update(elapsed:Float)
 	{
-		if (map == null) return;
+		if (map == null || dynamicObjects == null) return;
 		
 		for (i in 0...dynamicObjects.length) {
 			
@@ -116,27 +121,30 @@ class MapLayer
 			
 			if (tile == null) continue;
 			
-			//Update position and animation
-			tile.update(elapsed);
+/*			//Update position and animation
+			tile.update(elapsed);*/
 			
 			//Checking if the tile moved to another stack
 			
 			//If it now belongs to a new stack, pop it out of the old one
-			var screen_pos:FlxPoint = map.getWorldToScreen(tile.x, tile.y);
+			map.getWorldToScreen(screenPos, tile.x, tile.y);
 			
 			//TODO: Find a general offset based on tile size
-			var newIso:FlxPoint = map.getScreenToIso(screen_pos.x - 16, screen_pos.y + 16);
+			map.getScreenToIso(isoPos, screenPos.x - 32, screenPos.y + 32);
 			
-			if (tile.c != newIso.x || tile.r != newIso.y) {
+			if (isoPos.x > map.map_w - 1 || isoPos.y > map.map_h - 1 || isoPos.x < 0 || isoPos.y < 0) continue;
+			
+			if (tile.c != isoPos.x || tile.r != isoPos.y) {
 				
+				//Remove from old stack
 				removeObject(tile);
 				
 				//Then update its new iso position (stack row and column)
-				tile.c = Std.int(newIso.x);
-				tile.r = Std.int(newIso.y);
+				tile.c = Std.int(isoPos.x);
+				tile.r = Std.int(isoPos.y);
 				
 				//Add it to the new stack.
-				addTileAtTilePos(tile, tile.c, tile.r);
+				addTileAtTilePos(tile, tile.r, tile.c);
 			}
 			
 			//Experimental: Apply gravity
@@ -158,6 +166,9 @@ class MapLayer
 			if (tile.parent != null) {
 				tile.facing.set(tile.parent.flipX ? -1 : 1, tile.parent.flipY ? -1 : 1);
 			}
+			
+			//Update position and animation
+			tile.update(elapsed);
 		}
 	}
 	

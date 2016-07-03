@@ -1,5 +1,6 @@
 package ;
 
+import flixel.FlxCamera.FlxCameraFollowStyle;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
@@ -29,14 +30,17 @@ class TiledState extends FlxState
 	{
 		super.create();
 		
+		//Tiled loader supports TMX files in both XML and JSON encodings
 		//Json encoding 
-		var mapData:String = Assets.getText('assets/data/test_tiled.tmx'); 
-		
+		var mapData:String = Assets.getText('assets/data/test_tiled_json.tmx'); 
 		//Xml encoding
 		//var mapData:String = Assets.getText('assets/data/test_tiled_xml.tmx'); 
 		
 		map = MapUtils.getMapFromTiled(mapData, new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
 		add(map);
+		
+		
+		trace('Map Size : ${map.map_w},${map.map_h}');
 		
 		trace('Map layers : ${map.layers.length}');
 		
@@ -48,14 +52,21 @@ class TiledState extends FlxState
 		player.animation.add('Idle_SE', [67], 8, true);
 		player.animation.add('Walk_SE', [67, 68, 69, 70, 71], 8, true);
 		player.animation.play('Idle_NE');
+		player.pixelPerfectPosition = player.pixelPerfectRender = false;
+		
 		map.addSpriteAtTilePos(player, 1, 14, 14);
+		
+		//map.follow(FlxG.camera);
+		
+		//FlxG.camera.follow(player);
+		//FlxG.camera.follow(player, FlxCameraFollowStyle.TOPDOWN, 0.5);
 	}
 
 	override public function update(elapsed:Float):Void
 	{
-		super.update(elapsed);
-		
 		handleKeyboardInput(elapsed);
+
+		super.update(elapsed);
 	}
   
 	function handleKeyboardInput(elapsed:Float)
@@ -65,39 +76,68 @@ class TiledState extends FlxState
 		}
 		
 		if (FlxG.keys.pressed.DOWN) {
-			map.cameraScroll.y -= 200 * elapsed;
+			FlxG.camera.scroll.y -= 200 * elapsed;
 		} 
 		
 		if (FlxG.keys.pressed.LEFT) {
-			map.cameraScroll.x += 200 * elapsed;
+			FlxG.camera.scroll.x += 200 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.RIGHT) {
-			map.cameraScroll.x -= 200 * elapsed;
+			FlxG.camera.scroll.x -= 200 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.UP) {
-			map.cameraScroll.y += 200 * elapsed;
+			FlxG.camera.scroll.y += 200 * elapsed;
 		}
 		
-		if (FlxG.keys.pressed.S) {
-			player.x -= 200 * elapsed;
-			player.y += 100 * elapsed;
-		} 
-		
-		if (FlxG.keys.pressed.A) {
-			player.x -= 200 * elapsed;
-			player.y -= 100 * elapsed;
+		if (FlxG.keys.justReleased.PLUS) {
+			map.scale.x += 0.2;
+			map.scale.y += 0.2;
 		}
-		
-		if (FlxG.keys.pressed.D) {
-			player.x += 200 * elapsed;
-			player.y += 100 * elapsed;
+		if (FlxG.keys.justReleased.MINUS) {
+			map.scale.x -= 0.2;
+			map.scale.y -= 0.2;
 		}
 		
 		if (FlxG.keys.pressed.W) {
 			player.x += 200 * elapsed;
 			player.y -= 100 * elapsed;
+			
+			FlxG.camera.scroll.x -= 200 * elapsed;
+			FlxG.camera.scroll.y += 100 * elapsed;
+			
+			//player.y -= 100 * elapsed;
+		}
+		
+		if (FlxG.keys.pressed.S) {
+			player.x -= 200 * elapsed;
+			player.y += 100 * elapsed;
+			
+			FlxG.camera.scroll.x += 200 * elapsed;
+			FlxG.camera.scroll.y -= 100 * elapsed;
+			
+			//player.y += 100 * elapsed;
+		} 
+		
+		if (FlxG.keys.pressed.A) {
+			player.x -= 200 * elapsed;
+			player.y -= 100 * elapsed;
+			
+			FlxG.camera.scroll.x += 200 * elapsed;
+			FlxG.camera.scroll.y += 100 * elapsed;
+			
+			//player.x -= 200 * elapsed;
+		}
+		
+		if (FlxG.keys.pressed.D) {
+			player.x += 200 * elapsed;
+			player.y += 100 * elapsed;
+			
+			FlxG.camera.scroll.x -= 200 * elapsed;
+			FlxG.camera.scroll.y -= 100 * elapsed;
+			
+			//player.x += 200 * elapsed;
 		}
 		
 		handlePlayerAnimation();

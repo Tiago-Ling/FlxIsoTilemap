@@ -23,18 +23,18 @@ class MapUtils
 	//Separates a layer of tile types from a 2D array and returns it
 	public static function getLayerFromTileArray(indices:Array<Array<Int>>, tiles:Array<Int>, tilesetId:Int, tw:Float, th:Float, h_offset:Float, isDynamic:Bool = false, fillIndex:Int = -1):MapLayer
 	{
-		var layerData = new Array<Array<iso.Stack>>();
-		var layer = new iso.MapLayer([], [], tilesetId, isDynamic);
+		var layerData = new Array<Array<Stack>>();
+		var layer = new MapLayer([], tilesetId, isDynamic);
 		
 		var layer_h:Int = indices.length;
 		var layer_w:Int = indices[0].length;
 		
 		for (i in 0...layer_h) {
-			layerData[i] = new Array<iso.Stack>();
+			layerData[i] = new Array<Stack>();
 			for (j in 0...layer_w) {
 				var x:Float = ((j - i) * (tw / 2));
 				var y:Float = ((j + i) * ((th - h_offset) / 2));
-				layerData[i][j] = new iso.Stack(new iso.IsoTile(indices[i][j], x, y, j, i));
+				layerData[i][j] = new Stack(new IsoTile(indices[i][j], x, y, j, i));
 				
 				var changeIndex = true;
 				for (k in 0...tiles.length) {
@@ -53,18 +53,18 @@ class MapUtils
 	
 	public static function getLayerFromTileRange(indices:Array<Array<Int>>, startTile:Int, length:Int, tilesetId:Int, tw:Float, th:Float, h_offset:Float, isDynamic:Bool = false, fillIndex:Int = -1):MapLayer
 	{
-		var layerData = new Array<Array<iso.Stack>>();
-		var layer = new iso.MapLayer([], [], tilesetId, isDynamic);
+		var layerData = new Array<Array<Stack>>();
+		var layer = new MapLayer([], tilesetId, isDynamic);
 		
 		var layer_h:Int = indices.length;
 		var layer_w:Int = indices[0].length;
 		
 		for (i in 0...layer_h) {
-			layerData[i] = new Array<iso.Stack>();
+			layerData[i] = new Array<Stack>();
 			for (j in 0...layer_w) {
 				var x:Float = ((j - i) * (tw / 2));
 				var y:Float = ((j + i) * ((th - h_offset) / 2));
-				layerData[i][j] = new iso.Stack(new iso.IsoTile(indices[i][j], x, y, j, i));
+				layerData[i][j] = new Stack(new IsoTile(indices[i][j], x, y, j, i));
 				
 				var changeIndex = true;
 				for (k in startTile...length) {
@@ -83,15 +83,15 @@ class MapUtils
 	
 	public static function getEmptyLayer(tilesetId:Int, lw:Int, lh:Int, tw:Float, th:Float, h_offset:Float, fillIndex:Int = -1):MapLayer
 	{
-		var layerData = new Array<Array<iso.Stack>>();
-		var layer = new iso.MapLayer([], [], tilesetId, false);
+		var layerData = new Array<Array<Stack>>();
+		var layer = new MapLayer([], tilesetId, false);
 		
 		for (i in 0...lh) {
-			layerData[i] = new Array<iso.Stack>();
+			layerData[i] = new Array<Stack>();
 			for (j in 0...lw) {
 				var x:Float = ((j - i) * (tw / 2));
 				var y:Float = ((j + i) * ((th - h_offset) / 2));
-				layerData[i][j] = new iso.Stack(new iso.IsoTile(fillIndex, x, y, j, i));
+				layerData[i][j] = new Stack(new IsoTile(fillIndex, x, y, j, i));
 			}
 		}
 		
@@ -197,14 +197,14 @@ class MapUtils
 			
 			//TODO: Other encoding formats (Base64)
 			
-			var layerData = new Array<Array<iso.Stack>>();
+			var layerData = new Array<Array<Stack>>();
 			
 			//TODO: isDynamic (must check whether an object group with the same id exists
-			var layer = new iso.MapLayer([], [], 0, false);
+			var layer = new MapLayer([], 0, false);
 			
 			var rows = tiles.length;
 			for (i in 0...rows) {
-				layerData[i] = new Array<iso.Stack>();
+				layerData[i] = new Array<Stack>();
 				
 				var cols = -1;
 				if (isCsv)
@@ -217,7 +217,7 @@ class MapUtils
 				for (j in 0...cols) {
 					var x:Float = ((j - i) * (map.tile_width / 2));
 					var y:Float = ((j + i) * ((map.tile_height - map.height_offset) / 2));
-					layerData[i][j] = new iso.Stack(new iso.IsoTile(tiles[i][j] - 1, x, y, j, i));
+					layerData[i][j] = new Stack(new IsoTile(tiles[i][j] - 1, x, y, j, i));
 				}
 			}
 			
@@ -236,12 +236,10 @@ class MapUtils
 		
 		layerCount = 0;
 		//Dynamic object layers - ID will be given by loop order. Will be added to the layer with same ID
-		//Note: 
 		for (objLayer in fData.nodes.objectgroup) {
 			
 			//TODO: Better / generic way of using tiled properties
 			if (objLayer.hasNode.properties) {
-				//trace('Object layer has properties!');
 				var props:Map<String, Dynamic> = new Map<String, String>();
 				for (property in objLayer.node.properties.nodes.property) {
 					var propName:String = property.att.name;
@@ -252,7 +250,6 @@ class MapUtils
 				//Overrides layerCount if object layer has custom property name = "Layer", value = Int
 				if (props.exists('TilesetID')) {
 					layerCount = Std.parseInt(props.get('TilesetID'));
-					//trace('layerCount set from tiled : $layerCount');
 				}
 			}
 			
@@ -263,10 +260,10 @@ class MapUtils
 				var pos = FlxPoint.get(fclamp(Std.parseFloat(object.att.x), mapBounds.x, mapBounds.x + mapBounds.width),
 									   fclamp(Std.parseFloat(object.att.y), mapBounds.y, mapBounds.y + mapBounds.height));
 				
-				var screen_pos:FlxPoint = map.getWorldToScreen(pos.x, pos.y);
+				var screen_pos:FlxPoint = map.getWorldToScreen(new FlxPoint(), pos.x, pos.y);
 				
 				//TODO: Find a general offset based on tile size
-				var iso_pos:FlxPoint = map.getScreenToIso(screen_pos.x - 16, screen_pos.y + 16);
+				var iso_pos:FlxPoint = map.getScreenToIso(new FlxPoint(), screen_pos.x - 16, screen_pos.y + 16);
 				iso_pos.x = fclamp(iso_pos.x, 0, map.map_w - 1);
 				iso_pos.y = fclamp(iso_pos.y, 0, map.map_h - 1);
 				

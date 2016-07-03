@@ -29,6 +29,7 @@ class Stack
 	public function pop(obj:IsoTile):Bool
 	{
 		z_height -= obj.z_height;
+		
 		return members.remove(obj);
 	}
 	
@@ -46,5 +47,4 @@ class Stack
 	{
 		return members[0];
 	}
-	
 }

@@ -34,10 +34,6 @@ class CsvState extends FlxState
 		map.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
 		add(map);
 		
-		//map.addLayerFromCsv(Assets.getText("assets/data/level.csv"), [0, 1], 0, false, 58);
-		//map.addEmptyLayer(1, -1);
-		//map.addLayerFromCsvTileRange(Assets.getText("assets/data/level.csv"), 2, 62, 1, true, -1);
-		
 		map.addLayer(MapUtils.getLayerFromCsv(Assets.getText("assets/data/level.csv"), [0, 1], 0, TILE_WIDTH, TILE_HEIGHT, TILE_HEIGHT_OFFSET, false, 58));
 		map.addLayer(MapUtils.getEmptyLayer(1, MAP_WIDTH, MAP_HEIGHT, TILE_WIDTH, TILE_HEIGHT, TILE_HEIGHT_OFFSET, -1));
 		map.addLayer(MapUtils.getLayerFromCsvTileRange(Assets.getText("assets/data/level.csv"), 2, 62, 1, TILE_WIDTH, TILE_HEIGHT, TILE_HEIGHT_OFFSET, true, -1));
@@ -56,19 +52,19 @@ class CsvState extends FlxState
 		}
 		
 		if (FlxG.keys.pressed.DOWN) {
-			map.cameraScroll.y -= 200 * elapsed;
+			FlxG.camera.scroll.y -= 250 * elapsed;
 		} 
 		
 		if (FlxG.keys.pressed.LEFT) {
-			map.cameraScroll.x += 200 * elapsed;
+			FlxG.camera.scroll.x += 250 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.RIGHT) {
-			map.cameraScroll.x -= 200 * elapsed;
+			FlxG.camera.scroll.x -= 250 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.UP) {
-			map.cameraScroll.y += 200 * elapsed;
+			FlxG.camera.scroll.y += 250 * elapsed;
 		}
 	}
 }

@@ -21,8 +21,8 @@ class MapGeneratorState extends FlxState
 	static inline var VIEWPORT_HEIGHT:Float = 480;
 	
 	//Max size tested = 1200x1200 (~850MB mem, no optimization)
-	static inline var MAP_WIDTH:Float = 600;
-	static inline var MAP_HEIGHT:Float = 600;
+	static inline var MAP_WIDTH:Float = 1200;
+	static inline var MAP_HEIGHT:Float = 1200;
 	
 	static inline var TILE_WIDTH:Float = 64;
 	static inline var TILE_HEIGHT:Float = 96;
@@ -38,35 +38,11 @@ class MapGeneratorState extends FlxState
 		
 		FlxG.mouse.visible = false;
 		
-/*		map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
-		map.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
-		map.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
-		map.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
-		add(map);*/
-		
-		//#### SYNCHRONOUS MAP LOADING
-		
-/*		var map = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
-		map.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
-		map.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
-		map.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
-		add(map);
-		
-		var mapGen = new MapGenerator(map.map_w, map.map_h, 3, 7, 15, false);
-		mapGen.setIndices(41, 53, 45, 49, 25, 37, 29, 33, 1, 1, 1, 1, 0);
-		mapGen.generate();
-		
-		var mapData:Array<Array<Int>> = mapGen.extractData();
-		
-		map.addLayerFromTileArray(mapData, [0, 1], 0, false, 58);
-		map.addEmptyLayer(1, -1);
-		map.addLayerFromTileRange(mapData, 2, 62, 1, true, -1);
-		
-		FlxTween.manager.clear();
-		
-		mapLoaded = true;*/
-		
-		//#### END
+		isoMap = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
+		isoMap.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
+		isoMap.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
+		isoMap.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
+		add(isoMap);
 		
 		//Async map generation (old map generator can be quite slow for maps > 300 x 300)
 		var worker = new BackgroundWorker();
@@ -88,12 +64,6 @@ class MapGeneratorState extends FlxState
 		
 		worker.onComplete.add(function onDataLoaded(layers:Array<MapLayer>) {
 			
-			isoMap = new FlxIsoTilemap(new FlxPoint(VIEWPORT_WIDTH, VIEWPORT_HEIGHT), new FlxPoint(TILE_WIDTH, TILE_HEIGHT), TILE_HEIGHT_OFFSET);
-			isoMap.addTileset(AssetPaths.new_pixel_64_96__png, TILE_WIDTH, TILE_HEIGHT);
-			isoMap.addTileset(AssetPaths.dynamic_tileset__png, TILE_WIDTH, TILE_HEIGHT);
-			isoMap.init(new FlxPoint(MAP_WIDTH, MAP_HEIGHT));
-			add(isoMap);
-			
 			for (l in layers) {
 				isoMap.addLayer(l);
 			}
@@ -110,6 +80,7 @@ class MapGeneratorState extends FlxState
 		
 		loadTxt = new FlxText(0, FlxG.stage.stageHeight / 2 - 15, FlxG.width, 'Loading $MAP_WIDTH x $MAP_HEIGHT ...', 20);
 		loadTxt.alignment = FlxTextAlign.CENTER;
+		loadTxt.scrollFactor.set();
 		FlxTween.tween(loadTxt, { alpha:0 }, 0.5, { type:FlxTween.PINGPONG } );
 		add(loadTxt);
 		
@@ -132,19 +103,19 @@ class MapGeneratorState extends FlxState
 		}
 		
 		if (FlxG.keys.pressed.DOWN) {
-			isoMap.cameraScroll.y -= 200 * elapsed;
+			FlxG.camera.scroll.y -= 200 * elapsed;
 		} 
 		
 		if (FlxG.keys.pressed.LEFT) {
-			isoMap.cameraScroll.x += 200 * elapsed;
+			FlxG.camera.scroll.x += 200 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.RIGHT) {
-			isoMap.cameraScroll.x -= 200 * elapsed;
+			FlxG.camera.scroll.x -= 200 * elapsed;
 		}
 		
 		if (FlxG.keys.pressed.UP) {
-			isoMap.cameraScroll.y += 200 * elapsed;
+			FlxG.camera.scroll.y += 200 * elapsed;
 		}
 	}
 }
