@@ -83,9 +83,6 @@ class MapLayer
 	}
 	
 	public function removeObject(obj:iso.IsoTile) {
-		
-		var screenPos = map.getWorldToScreen(obj.x, obj.y);
-		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
 		stacks[obj.r][obj.c].pop(obj);
 		
 		if (obj.isDynamic) {
