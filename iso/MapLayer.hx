@@ -52,7 +52,6 @@ class MapLayer
 		//Create new iso tile and set a reference to the FlxSprite inside it
 		var stack = stacks[r][c];
 		if (stack == null) return;
-		
 		obj.setPosition(stack.root.x, stack.root.y);
 		
 		var tile = new IsoTile(0, obj.x, obj.y, c, r, obj);
