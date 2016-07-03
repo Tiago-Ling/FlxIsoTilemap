@@ -30,9 +30,9 @@ class MapLayer
 		this.isDynamic = false;
 	}
 	
-	public function addTileAtTilePos(obj:iso.IsoTile, r:Int, c:Int)
+	public function addTileAtTilePos(obj:iso.IsoTile)
 	{
-		stacks[c][r].push(obj);
+		stacks[obj.r][obj.c].push(obj);
 	}
 	
 	public function addTileAtWorldPos(obj:iso.IsoTile, x:Float, y:Float)
@@ -86,7 +86,7 @@ class MapLayer
 		
 		var screenPos = map.getWorldToScreen(obj.x, obj.y);
 		var tilePos = map.getScreenToIso(screenPos.x, screenPos.y);
-		stacks[Std.int(tilePos.y)][Std.int(tilePos.x)].pop(obj);
+		stacks[obj.r][obj.c].pop(obj);
 		
 		if (obj.isDynamic) {
 			var id:Int = -1;
@@ -137,7 +137,7 @@ class MapLayer
 				tile.r = Std.int(newIso.y);
 				
 				//Add it to the new stack.
-				addTileAtTilePos(tile, tile.c, tile.r);
+				addTileAtTilePos(tile);
 			}
 			
 			//Experimental: Apply gravity
