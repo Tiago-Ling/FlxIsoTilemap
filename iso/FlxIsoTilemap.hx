@@ -32,10 +32,8 @@ class FlxIsoTilemap extends FlxObject
 	public var map_w:Int;
 	public var map_h:Int;
 	
-	//TODO: Substitute by Flixel's camera
-	public var cameraScroll:FlxPoint;
 	public var scale:FlxPoint;
-	public var layers:Array<iso.MapLayer>;
+	public var layers:Array<MapLayer>;
 	public var viewport:Sprite;
 	
 	var frameCollections:Array<FlxFramesCollection>;
@@ -81,10 +79,9 @@ class FlxIsoTilemap extends FlxObject
 		tile_height = tile_gfx_height = tileSize.y;
 		height_offset = height_gfx_offset = tileHeightOffset;
 		
-		cameraScroll = new FlxPoint();
 		scale = new FlxPoint(1, 1);
 		
-		layers = new Array<iso.MapLayer>();
+		layers = new Array<MapLayer>();
 		frameCollections = new Array<FlxFramesCollection>();
 		graphics = new Array<FlxGraphic>();
 	}
@@ -123,25 +120,46 @@ class FlxIsoTilemap extends FlxObject
 		//Init draw helpers
 		matrix = new FlxMatrix();
 		offset = new FlxPoint();
+		
+		topLeft = new FlxPoint();
+		topRight = new FlxPoint();
+		botLeft = new FlxPoint();
+		botRight = new FlxPoint();
 	}
 	
 	override public function update(elapsed:Float):Void
 	{
-		updateViewport(elapsed);
+		for (k in 0...layers.length) {
+			var layer = layers[k];
+			if (layer == null) continue;
+			if (layer.isDynamic)
+				layer.update(elapsed);
+		}
 	}
 	
-	public function updateViewport(elapsed:Float)
+	override public function draw():Void
 	{
+		drawViewport(cameras[0]);
+	}
+	
+	public function drawViewport(Camera:FlxCamera)
+	{
+		var worldPos = FlxPoint.get();
+		
 		//Get all viewport corners
-		topLeft = getScreenToIso(offsetViewportBounds.x - cameraScroll.x, offsetViewportBounds.y - cameraScroll.y);
-		topRight = getScreenToIso(offsetViewportBounds.x + offsetViewportBounds.width - cameraScroll.x, offsetViewportBounds.y - cameraScroll.y);
-		botLeft = getScreenToIso(offsetViewportBounds.x - cameraScroll.x, offsetViewportBounds.y + offsetViewportBounds.height - cameraScroll.y);
-		botRight = getScreenToIso(offsetViewportBounds.x + offsetViewportBounds.width - cameraScroll.x, offsetViewportBounds.y + offsetViewportBounds.height - cameraScroll.y);
+		getScreenToIso(topLeft, offsetViewportBounds.x, offsetViewportBounds.y, camera.scroll);
+		getScreenToIso(topRight, offsetViewportBounds.x + offsetViewportBounds.width, offsetViewportBounds.y, camera.scroll);
+		getScreenToIso(botLeft, offsetViewportBounds.x, offsetViewportBounds.y + offsetViewportBounds.height, camera.scroll);
+		getScreenToIso(botRight, offsetViewportBounds.x + offsetViewportBounds.width, offsetViewportBounds.y + offsetViewportBounds.height, camera.scroll);
 		
 		var i_length:Int = Std.int(botLeft.y - topRight.y + 1);
 		var i_start:Int = Std.int(topRight.y);
 		
 		for (k in 0...layers.length) {
+			var layer = layers[k];
+			if (layer == null) continue;
+			
+			drawItem = Camera.startQuadBatch(graphics[layer.tilesetId], false, false, null, false);
 			
 			var j_start:Int = 0;
 			var j_end:Int = 0;
@@ -149,7 +167,6 @@ class FlxIsoTilemap extends FlxObject
 			
 			var layer = layers[k];
 			if (layer == null) continue;
-			layer.viewportTiles.splice(0, layer.viewportTiles.length);
 			
 			for (i in 0...i_length) {
 				
@@ -167,90 +184,82 @@ class FlxIsoTilemap extends FlxObject
 					var tX:Int = j_start + j;
 					var tY:Int = i_start + i;
 					
-					if (tX < 0 || tX >= map_w || tY < 0 || tY >= map_h)
+					//var stack:Stack = null;
+					////TODO: Implement wrapping
+					//var wrapX:Bool = true;
+					//var wrapY:Bool = true;
+					//if (wrapX) {
+						//if (tX < 0) tX = map_w + tX;
+						//else if (tX >= map_w) tX = tX - map_w;
+					//}
+					//
+					//if (wrapY) {
+						//if (tY < 0) tY = map_h + tY;
+						//else if (tY >= map_h) tY = tY - map_h;
+					//}
+					
+					if (tX < 0 || tX >= map_w || tY < 0 || tY >= map_h) {
+						//trace('Out of bounds : $tX - $tY');
 						continue;
-					
-					var stack = layer.stacks[tY][tX];
-					
-					if (stack == null) continue;
-					if (stack.length == 1 && stack.root.type == -1)
-						continue;
-					
-					//Experimental: Tile animation update
-/*					for (l in 0...stack.length) {
-						var tile = stack.get(l);
-						
-						if (tile == null) continue;
-						
-						if (tile.animated)
-							tile.updateAnimation(1 / 60);
-					}*/
-					
-					layer.viewportTiles.push(stack);
-				}
-			}
-			
-			if (layer.isDynamic)
-				layer.update(elapsed);
-		}
-	}
-	
-	override public function draw():Void
-	{
-		drawViewport(cameras[0]);
-	}
-	
-	public function drawViewport(Camera:FlxCamera)
-	{
-		for (k in 0...layers.length) {
-			var layer = layers[k];
-			var count:Int = 0;
-			
-			drawItem = Camera.startQuadBatch(graphics[layer.tilesetId], false, false, null, false);
-			
-			for (i in 0...layer.viewportTiles.length) {
-				var stack = layer.viewportTiles[i];
-				
-				for (j in 0...stack.length) {
-					
-					var tile = stack.get(j);
-					if (tile == null || tile.type == -1 ) continue;
-					
-					//Experimental: draw shadows
-					if (tile.hasShadow) {
-						matrix.identity();
-						
-						//Translate to tile pivot
-						matrix.translate(-tile_width / 2, -80);
-						
-						//Apply transformations (scale, rotate, skew)
-						matrix.scale(tile.shadowScale, tile.shadowScale);
-						
-						//Translate back from tile pivot
-						matrix.translate(tile_width / 2, 80);
-						
-						//TODO: Fix global scale positioning of shadow
-						matrix.translate(origin.x + (tile.x * scale.x) + Std.int(cameraScroll.x), origin.y + (tile.y * scale.y) + Std.int(cameraScroll.y));
-						
-						var shadowFrame = frameCollections[layer.tilesetId].getByIndex(tile.shadowId);
-						drawItem.addQuad(shadowFrame, matrix, null);
 					}
 					
-					var collection = frameCollections[layer.tilesetId];
-					frame = frameCollections[layer.tilesetId].getByIndex(tile.type);
+					var stack = layer.stacks[tY][tX];
+					if (stack == null) continue;
 					
-					//Tile matrix
-					//When flipping we must add the tile width / height
-					offset.set(tile.facing.x < 0 ? tile_width : 0, tile.facing.y < 0 ? tile_height : 0);
+					//Only pushes into draw stack if the tile is visible and there's more than one element
+					//Using this makes the dynamic tiles flash when moving
+					//if (stack.length == 1 && stack.root.type == -1)
+						//continue;
 					
-					matrix.identity();
+					//Experimental: Tile animation update
+					//for (l in 0...stack.length) {
+						//var tile = stack.get(l);
+						//
+						//if (tile == null) continue;
+						//
+						//if (tile.animated)
+							//tile.updateAnimation(1 / 60);
+					//}
 					
-					matrix.translate(-tile_width / 2, -80);
-					matrix.scale(scale.x * tile.facing.x, scale.y * tile.facing.y);
-					matrix.translate(tile_width / 2, 80);
-					matrix.translate(origin.x + tile.x + Std.int(cameraScroll.x), origin.y + (tile.y - tile.z) + Std.int(cameraScroll.y));
-					
-					drawItem.addQuad(frame, matrix, null);
+					for (k in 0...stack.length) {
+						
+						var tile = stack.get(k);
+						if (tile == null || tile.type == -1) continue;
+						
+						//Experimental: draw shadows
+						//if (tile.hasShadow) {
+							//matrix.identity();
+							//
+							////Translate to tile pivot
+							//matrix.translate(-tile_width / 2, -80);
+							//
+							////Apply transformations (scale, rotate, skew)
+							//matrix.scale(tile.shadowScale, tile.shadowScale);
+							//
+							////Translate back from tile pivot
+							//matrix.translate(tile_width / 2, 80);
+							//
+							////TODO: Fix global scale positioning of shadow
+							//matrix.translate(origin.x + (tile.x * scale.x) + Std.int(camera.scroll.x), origin.y + (tile.y * scale.y) + Std.int(camera.scroll.y));
+							//
+							//var shadowFrame = frameCollections[layer.tilesetId].getByIndex(tile.shadowId);
+							//drawItem.addQuad(shadowFrame, matrix, null);
+						//}
+						
+						var collection = frameCollections[layer.tilesetId];
+						frame = frameCollections[layer.tilesetId].getByIndex(tile.type);
+						
+						//Tile matrix
+						matrix.identity();
+						
+						matrix.translate(-tile_width / 2, -80);
+						matrix.scale(scale.x * tile.facing.x, scale.y * tile.facing.y);
+						matrix.translate(tile_width / 2, 80);
+						
+						matrix.translate(origin.x + tile.x + camera.scroll.x, origin.y + (tile.y - tile.z) + camera.scroll.y);
+						
+						drawItem.addQuad(frame, matrix, null);
+					}
 				}
 			}
 		}
@@ -311,7 +320,7 @@ class FlxIsoTilemap extends FlxObject
 		layers[layer].addSpriteAtWorldPos(sprite, x, y);
 	}
 	
-	public function getScreenToIso(screen_x:Float, screen_y:Float, offset:FlxPoint = null, asInt:Bool = true):FlxPoint
+	public function getScreenToIso(ptIn:FlxPoint, screen_x:Float, screen_y:Float, offset:FlxPoint = null, asInt:Bool = true):FlxPoint
 	{
 		var cX = screen_x - origin.x - (tile_height - height_offset);
 		var cY = screen_y - origin.y - tile_width;
@@ -325,15 +334,15 @@ class FlxIsoTilemap extends FlxObject
 		if (asInt) {
 			var mapX:Int = Std.int((cX / (tile_width / 2) + cY / ((tile_height - height_offset) / 2)) / 2);
 			var mapY:Int = Std.int((cY / ((tile_height - height_offset) / 2) - cX / (tile_width / 2)) / 2);
-			return new FlxPoint(mapX, mapY);
+			return ptIn.set(mapX, mapY);
 		} else {
 			var mapX:Float = (cX / (tile_width / 2) + cY / ((tile_height - height_offset) / 2)) / 2;
 			var mapY:Float = (cY / ((tile_height - height_offset) / 2) - cX / (tile_width / 2)) / 2;
-			return new FlxPoint(mapX, mapY);
+			return ptIn.set(mapX, mapY);
 		}
 	}
 	
-	public function getIsoToScreen(iso_x:Float, iso_y:Float, offset:FlxPoint = null):FlxPoint
+	public function getIsoToScreen(ptIn:FlxPoint, iso_x:Float, iso_y:Float, offset:FlxPoint = null):FlxPoint
 	{
 		var cX = (iso_x - iso_y) * tile_width / 2;
 		var cY = (iso_x + iso_y) * ((tile_height - height_offset) / 2);
@@ -347,12 +356,20 @@ class FlxIsoTilemap extends FlxObject
 			cY += offset.y;
 		}
 		
-		return new FlxPoint(cX, cY);
+		return ptIn.set(cX, cY);
 	}
 	
-	public function getWorldToScreen(world_x:Float, world_y:Float):FlxPoint
+	public function getWorldToScreen(ptIn:FlxPoint, world_x:Float, world_y:Float):FlxPoint
 	{
-		return new FlxPoint(world_x + origin.x + (tile_height - height_offset), world_y + origin.y + tile_width);
+		return ptIn.set(world_x + origin.x + (tile_height - height_offset), world_y + origin.y + tile_width);
+	}
+	
+	public function getIsoToWorld(ptIn:FlxPoint, iso_x:Int, iso_y:Int):FlxPoint
+	{
+		var x:Float = ((iso_x - iso_y) * (tile_width / 2));
+		var y:Float = ((iso_x + iso_y) * ((tile_height - height_offset) / 2));
+		
+		return ptIn.set(x, y);
 	}
 	
 	public function updateScale(newScale:Float)
@@ -378,7 +395,32 @@ class FlxIsoTilemap extends FlxObject
 	
 	public function getBounds():Rectangle
 	{
-		//Tilemap Bounding rectangle, yellow (includes height_offset for walls)
+		//Tilemap Bounding rectangle, includes height_offset for walls
 		return new Rectangle(origin.x - (map_h - 1) * tile_width / 2, origin.y, map_pixel_width, map_pixel_height + height_offset);
+	}
+	
+	/**
+	 * Call this function to lock the automatic camera to the map's edges.
+	 * 
+	 * @param	Camera			Specify which game camera you want.  If null getScreenPosition() will just grab the first global camera.
+	 * @param	Border			Adjusts the camera follow boundary by whatever number of tiles you specify here.  Handy for blocking off deadends that are offscreen, etc.  Use a negative number to add padding instead of hiding the edges.
+	 * @param	UpdateWorld		Whether to update the collision system's world size, default value is true.
+	 */
+	public function follow(?Camera:FlxCamera, Border:Int = 0, UpdateWorld:Bool = true):Void
+	{
+		if (Camera == null)
+		{
+			Camera = FlxG.camera;
+		}
+		
+		var bounds = getBounds();
+		Camera.setScrollBoundsRect(bounds.x + Border, bounds.y + Border, bounds.width - Border * 2, bounds.height - Border * 2, UpdateWorld);
+		
+/*		var bX = origin.x - (map_h - 1) * tile_width / 2;
+		var bY = origin.y;
+		var bW = map_pixel_width;
+		var bH = map_pixel_height;
+		
+		Camera.setScrollBoundsRect(bX, bY, bW, bH, UpdateWorld);*/
 	}
 }
