@@ -80,6 +80,7 @@
 	<haxedef name="NAPE_RELEASE_BUILD" unless="debug" />
 
 	<!-- _________________________________ Custom _______________________________ -->
+	<haxedef name="no-inline" if="neko"/>
 
 	<!--Place custom nodes like icons here (higher priority to override the HaxeFlixel icon)-->
 </project>

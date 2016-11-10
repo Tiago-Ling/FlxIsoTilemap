@@ -68,7 +68,7 @@ class MapGeneratorState extends FlxState
 				isoMap.addLayer(l);
 			}
 			
-			FlxTween.manager.clear();
+			FlxTween.globalManager.clear();
 			
 			loadTxt.alpha = 1.0;
 			loadTxt.alignment = FlxTextAlign.LEFT;
