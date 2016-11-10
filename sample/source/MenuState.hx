@@ -40,7 +40,7 @@ class MenuState extends FlxState
 		buttonTop += heighDifference;
 		buttons.push(tiledButton);
 		
-		selectionIndicator = new FlxText(FlxG.width / 2 - 60, buttons[selection].y + 3, '->', 8);
+		selectionIndicator = new FlxText(FlxG.width / 2 - 60, buttons[selection].y + 3, 20, '->', 8);
 		selectionIndicator.alignment = FlxTextAlign.CENTER;
 		add(selectionIndicator);
 	}

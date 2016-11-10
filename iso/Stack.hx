@@ -1,12 +1,14 @@
 package iso;
 
+import flixel.FlxG;
+
 /**
  * ...
  * @author Tiago Ling Alexandre
  */
 class Stack
 {
-	public var z_height:Float;
+	public var z_height:Float = 0;
 	public var root(get, null):IsoTile;
 	public var length(get, null):Int;
 	var members:Array<IsoTile>;
