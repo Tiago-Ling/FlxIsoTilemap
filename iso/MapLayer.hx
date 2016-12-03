@@ -34,10 +34,10 @@ class MapLayer
 		screenPos = new FlxPoint();
 		isoPos = new FlxPoint();
 	}
-	
-	public function addTileAtTilePos(obj:IsoTile, r:Int, c:Int)
+
+	public function addTileAtTilePos(obj:iso.IsoTile)
 	{
-		stacks[r][c].push(obj);
+		stacks[obj.r][obj.c].push(obj);
 	}
 	
 	public function addTileAtWorldPos(obj:IsoTile, x:Float, y:Float)
@@ -86,10 +86,9 @@ class MapLayer
 			dynamicObjects.push(tile);
 		}
 	}
-	
-	public function removeObject(obj:IsoTile) {
-		
-		if (!stacks[obj.r][obj.c].pop(obj)) trace(' #### Could not remove obj!');
+
+	public function removeObject(obj:iso.IsoTile) {
+		stacks[obj.r][obj.c].pop(obj);
 		
 		if (obj.isDynamic) {
 			var id:Int = -1;
@@ -143,7 +142,7 @@ class MapLayer
 				tile.r = Std.int(isoPos.y);
 				
 				//Add it to the new stack.
-				addTileAtTilePos(tile, tile.r, tile.c);
+				addTileAtTilePos(tile);
 			}
 			
 			//Experimental: Apply gravity
